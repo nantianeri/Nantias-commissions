@@ -252,13 +252,25 @@
   document.getElementById('sampleInput').addEventListener('change',async e=>{await uploadSamples([...e.target.files]);e.target.value='';});
   document.getElementById('offerForm').addEventListener('submit',async e=>{
     e.preventDefault();
+    const name=document.getElementById('offerName').value.trim();
+    const category=document.getElementById('offerCategory').value.trim();
+    const existingOptions = currentOfferId && currentSamples ? (await client.from('commission_offers').select('options').eq('id',currentOfferId).single()).data?.options || {} : {};
+    const keyText = `${name} ${document.getElementById('offerDescription').value}`.toLowerCase();
+    let format = existingOptions.format || '';
+    if(category === 'Character Illustration'){
+      if(/\bbust\s*up\b/.test(keyText)) format='bust';
+      else if(/\bhalf\s*body\b/.test(keyText)) format='half';
+      else if(/\bfull\s*body\b/.test(keyText)) format='full';
+    }
+    const options={...existingOptions};
+    if(format) options.format=format;
     const payload={
-      name:document.getElementById('offerName').value.trim(),
-      category:document.getElementById('offerCategory').value.trim(),
+      name, category,
       description:document.getElementById('offerDescription').value.trim() || null,
       base_price:document.getElementById('offerPrice').value === '' ? null : Number(document.getElementById('offerPrice').value),
       sort_order:Number(document.getElementById('offerSort').value)||0,
-      active:document.getElementById('offerActive').checked
+      active:document.getElementById('offerActive').checked,
+      options
     };
     showCatalogMessage('Saving…');
     let result;
