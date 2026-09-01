@@ -121,3 +121,16 @@ footer{padding:50px 0;border-top:1px solid var(--line);color:var(--muted)}
 .socials{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.socials a{padding:9px 13px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}.socials a:hover{color:var(--text);border-color:var(--purple)}.cta-band{padding:55px 0;background:linear-gradient(120deg,rgba(255,107,138,.10),rgba(167,139,250,.09));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.availability{display:flex;align-items:center;gap:10px;margin:16px 0}.dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 18px rgba(121,226,173,.7)}.dot.closed{background:var(--pink)}.pill-row{display:flex;gap:10px;flex-wrap:wrap}.pill{border:1px solid var(--line);padding:8px 12px;border-radius:999px;color:var(--muted)}.warning{border-left-color:var(--pink);background:rgba(255,107,138,.07)}
 
 .small{font-size:.88rem}
+
+
+/* V6.2 commission catalog + optional samples */
+.catalog-admin-row{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:18px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.catalog-admin-row:first-child{border-top:0}
+.catalog-admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn.danger{border-color:rgba(255,107,138,.45)}
+.sample-admin-grid,.sample-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin:14px 0}
+.sample-admin-item,.sample-gallery a{position:relative;display:block;aspect-ratio:1/1;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03)}
+.sample-admin-item img,.sample-gallery img{width:100%;height:100%;object-fit:cover}
+.sample-remove{position:absolute;right:6px;top:6px;width:30px;height:30px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:rgba(0,0,0,.75);color:#fff;font-size:20px;line-height:1;cursor:pointer}
+.public-offer .sample-gallery{margin:18px 0 20px}
+@media (min-width:700px){.public-offer .sample-gallery{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
