@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Dashboard — Nantia's Commissions</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/v6.js"></script>
+</head>
+<body>
+<header><div class="container nav">
+<a class="logo" href="index.html">NANTIA</a>
+<nav class="navlinks">
+<a href="portfolio.html">Portfolio</a><a href="commissions.html">Commissions</a>
+<a href="how-it-works.html">How It Works</a><a href="faq.html">FAQ</a><a href="tos.html">TOS</a>
+</nav>
+<a class="btn btn-primary" href="commissions.html">Public Site</a>
+<button class="menu" aria-label="Menu">☰</button>
+</div></header>
+<main>
+<section class="section"><div class="container">
+<div id="loginView" class="form-wrap">
+<div class="eyebrow">Private Area · V6</div>
+<h1>Admin login.</h1>
+<p class="lead">Sign in to manage Nantia's commissions.</p>
+<form id="loginForm" class="card" style="margin-top:25px">
+<label>Email *</label><input id="loginEmail" type="email" required>
+<label>Password *</label><input id="loginPassword" type="password" required>
+<button class="btn btn-primary" type="submit">Sign In</button>
+<p id="loginMessage" class="muted"></p>
+</form>
+</div>
+
+<div id="dashboardView" hidden>
+<div class="eyebrow">Private Area · V6</div>
+<div class="section-head">
+<div><h1>Commission dashboard.</h1><p class="lead">Real authentication and persistent database foundation.</p></div>
+<button id="logoutBtn" class="btn">Log Out</button>
+</div>
+<div class="grid grid-3" style="margin-top:35px">
+<div class="card"><div class="accent-pink">NEW REQUESTS</div><h2 id="newCount">0</h2></div>
+<div class="card"><div class="accent-cream">AWAITING PAYMENT</div><h2 id="paymentCount">0</h2></div>
+<div class="card"><div class="accent-blue">IN PROGRESS</div><h2 id="progressCount">0</h2></div>
+</div>
+<div class="card" style="margin-top:20px">
+<h3>Commission Availability</h3>
+<label class="check"><input id="openToggle" type="checkbox"><span>Accept new commission requests</span></label>
+<p id="settingsMessage" class="muted"></p>
+</div>
+<div class="card" style="margin-top:20px">
+<h3>Commission Catalog</h3>
+<p class="muted">V6 database connection is ready. Catalog management will be the next implementation step.</p>
+<div id="catalogList"></div>
+</div>
+</div>
+</div></section>
+</main>
+<footer><div class="container"><strong>NANTIA</strong><br>Character Artist & Illustrator<br><small>© 2026 Nantia. Commission website.</small></div></footer>
+<script>
+(async function(){
+  const msg = document.getElementById('loginMessage');
+  const loginView = document.getElementById('loginView');
+  const dashboard = document.getElementById('dashboardView');
+  const loginForm = document.getElementById('loginForm');
+  const logout = document.getElementById('logoutBtn');
+
+  const client = await window.NANTIA_V6.init();
+  if (!client) {
+    msg.textContent = 'Supabase is not configured yet. Add your project URL and anon/publishable key to js/supabase-config.js.';
+    return;
+  }
+
+  async function loadDashboard() {
+    const {data:{user}} = await client.auth.getUser();
+    if (!user) { loginView.hidden=false; dashboard.hidden=true; return; }
+    const {data:profile} = await client.from('profiles').select('role').eq('id',user.id).single();
+    if (!profile || profile.role !== 'admin') {
+      msg.textContent = 'This account is not authorized as an admin.';
+      await client.auth.signOut();
+      return;
+    }
+    loginView.hidden=true; dashboard.hidden=false;
+
+    const {data:settings} = await client.from('site_settings').select('*').eq('id',true).single();
+    if (settings) document.getElementById('openToggle').checked = settings.commissions_open;
+
+    const {data:requests} = await client.from('commission_requests').select('status');
+    if (requests) {
+      document.getElementById('newCount').textContent = requests.filter(r=>r.status==='NEW').length;
+      document.getElementById('paymentCount').textContent = requests.filter(r=>r.status==='ACCEPTED_AWAITING_PAYMENT' || r.status==='PAYMENT_CLAIMED').length;
+      document.getElementById('progressCount').textContent = requests.filter(r=>r.status==='IN_PROGRESS').length;
+    }
+
+    const {data:offers} = await client.from('commission_offers').select('*').order('sort_order');
+    document.getElementById('catalogList').innerHTML = (offers||[]).map(o =>
+      `<p><strong>${o.name}</strong> · ${o.base_price == null ? 'Estimate' : '$'+Number(o.base_price).toFixed(2)}
+      · ${o.active ? 'VISIBLE' : 'HIDDEN'}</p>`).join('') || '<p class="muted">No offers yet.</p>';
+  }
+
+  loginForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    msg.textContent='Signing in…';
+    const {error} = await client.auth.signInWithPassword({
+      email: document.getElementById('loginEmail').value.trim(),
+      password: document.getElementById('loginPassword').value
+    });
+    msg.textContent = error ? error.message : '';
+    if (!error) await loadDashboard();
+  });
+
+  logout.addEventListener('click', async ()=>{ await client.auth.signOut(); await loadDashboard(); });
+  document.getElementById('openToggle').addEventListener('change', async e=>{
+    const {error}=await client.from('site_settings').update({commissions_open:e.target.checked}).eq('id',true);
+    document.getElementById('settingsMessage').textContent = error ? error.message : 'Saved.';
+  });
+
+  await loadDashboard();
+})();
+</script>
+<script src="js/script.js"></script>
+</body></html>
