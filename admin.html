@@ -48,6 +48,40 @@
 <label class="check"><input id="openToggle" type="checkbox"><span>Accept new commission requests</span></label>
 <p id="settingsMessage" class="muted"></p>
 </div>
+
+<div class="card" style="margin-top:20px">
+  <div class="section-head" style="align-items:center">
+    <div><h3>Commission Requests</h3><p class="muted">Review incoming requests, references, pricing and status.</p></div>
+    <button id="refreshRequestsBtn" class="btn" type="button">Refresh</button>
+  </div>
+  <div id="requestsMessage" class="muted" style="margin-top:10px"></div>
+  <div id="requestsList" style="margin-top:20px"></div>
+  <div id="requestEditor" class="card" hidden style="margin-top:20px;background:rgba(255,255,255,.02)">
+    <div class="section-head"><div><h3 id="requestEditorTitle">Request</h3><p id="requestMeta" class="muted"></p></div><button id="closeRequestBtn" class="btn" type="button">Close</button></div>
+    <div id="requestDetails" style="margin-top:20px"></div>
+    <div style="margin-top:22px">
+      <h4>Reference files</h4>
+      <div id="requestFiles" class="sample-admin-grid" style="margin-top:12px"></div>
+    </div>
+    <form id="requestUpdateForm" style="margin-top:24px">
+      <label>Status</label>
+      <select id="requestStatus">
+        <option value="NEW">NEW</option><option value="REVIEWING">REVIEWING</option>
+        <option value="ACCEPTED_AWAITING_PAYMENT">ACCEPTED — AWAITING PAYMENT</option>
+        <option value="PAYMENT_CLAIMED">PAYMENT CLAIMED</option><option value="PAID">PAID</option>
+        <option value="IN_PROGRESS">IN PROGRESS</option><option value="COMPLETED">COMPLETED</option>
+        <option value="DECLINED">DECLINED</option>
+      </select>
+      <label>Final price</label><input id="requestFinalPrice" type="number" min="0" step="0.01" placeholder="Leave blank if not set">
+      <label>Payment instructions</label><textarea id="requestPaymentInstructions" placeholder="How the client should pay"></textarea>
+      <label>Decline reason</label><input id="requestDeclineReason" placeholder="Internal reason">
+      <label>Decline message</label><textarea id="requestDeclineMessage" placeholder="Message the client will receive later"></textarea>
+      <button class="btn btn-primary" type="submit">Save Request</button>
+      <span id="requestSaveMessage" class="muted" style="margin-left:10px"></span>
+    </form>
+  </div>
+</div>
+
 <div class="card" style="margin-top:20px">
 <div class="section-head" style="align-items:center">
   <div><h3>Commission Catalog</h3><p class="muted">Manage offers, prices, visibility and optional sample images.</p></div>
@@ -118,6 +152,7 @@
     }
 
     await loadCatalog();
+    await loadRequests();
   }
 
   let currentOfferId = null;
@@ -300,6 +335,118 @@
   document.getElementById('openToggle').addEventListener('change', async e=>{
     const {error}=await client.from('site_settings').update({commissions_open:e.target.checked}).eq('id',true);
     document.getElementById('settingsMessage').textContent = error ? error.message : 'Saved.';
+  });
+
+  let currentRequestId = null;
+
+  const fmtMoney = v => v == null || v === '' ? '—' : '$' + Number(v).toFixed(2);
+  const fmtDate = v => v ? new Date(v).toLocaleString() : '—';
+  const statusLabel = s => String(s || '').replaceAll('_',' ');
+
+  function showRequestsMessage(text, error=false) {
+    const el=document.getElementById('requestsMessage');
+    el.textContent=text||'';
+    el.style.color=error?'var(--pink)':'';
+  }
+
+  function requestDetailRows(r) {
+    const rows = [
+      ['Instagram', r.instagram_username], ['Email', r.email],
+      ['Commission', r.commission_type], ['Format', r.format],
+      ['Characters', r.character_count], ['Usage', r.usage_type],
+      ['Background', r.background], ['Custom complexity', r.custom_complexity],
+      ['Urgent', r.urgent ? 'Yes' : 'No'], ['Requested deadline', r.requested_deadline],
+      ['Deadline reason', r.deadline_reason], ['Estimated price', fmtMoney(r.estimated_price)],
+      ['Final price', fmtMoney(r.final_price)], ['Submitted', fmtDate(r.created_at)],
+      ['Description', r.description], ['Mood / lighting', r.preferred_mood_lighting],
+      ['Additional information', r.additional_information]
+    ];
+    return '<div class="request-detail-grid">'+rows.map(([k,v])=>`<div><strong>${esc(k)}</strong><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(v ?? '—')}</div></div>`).join('')+'</div>';
+  }
+
+  async function loadRequests() {
+    showRequestsMessage('Loading…');
+    const {data,error}=await client.from('commission_requests').select('*').order('created_at',{ascending:false});
+    if(error){showRequestsMessage(error.message,true);return;}
+    const list=document.getElementById('requestsList');
+    list.innerHTML=(data||[]).map(r=>`<div class="catalog-admin-row">
+      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type)}<div class="muted">${esc(r.instagram_username)} · ${esc(statusLabel(r.status))} · ${fmtMoney(r.final_price ?? r.estimated_price)} · ${esc(fmtDate(r.created_at))}</div></div>
+      <div class="catalog-admin-actions"><button type="button" class="btn" data-open-request="${r.id}">Open</button></div>
+    </div>`).join('') || '<p class="muted">No commission requests yet.</p>';
+    list.querySelectorAll('[data-open-request]').forEach(b=>b.addEventListener('click',()=>openRequest((data||[]).find(r=>r.id===b.dataset.openRequest))));
+    showRequestsMessage(`${(data||[]).length} request${(data||[]).length===1?'':'s'}.`);
+    document.getElementById('newCount').textContent=(data||[]).filter(r=>r.status==='NEW').length;
+    document.getElementById('paymentCount').textContent=(data||[]).filter(r=>['ACCEPTED_AWAITING_PAYMENT','PAYMENT_CLAIMED'].includes(r.status)).length;
+    document.getElementById('progressCount').textContent=(data||[]).filter(r=>r.status==='IN_PROGRESS').length;
+  }
+
+  async function openRequest(r) {
+    if(!r)return;
+    currentRequestId=r.id;
+    document.getElementById('requestEditorTitle').textContent=`Request #${r.request_number}`;
+    document.getElementById('requestMeta').textContent=`${statusLabel(r.status)} · submitted ${fmtDate(r.created_at)}`;
+    document.getElementById('requestDetails').innerHTML=requestDetailRows(r);
+    document.getElementById('requestStatus').value=r.status;
+    document.getElementById('requestFinalPrice').value=r.final_price ?? '';
+    document.getElementById('requestPaymentInstructions').value=r.payment_instructions || '';
+    document.getElementById('requestDeclineReason').value=r.decline_reason || '';
+    document.getElementById('requestDeclineMessage').value=r.decline_message || '';
+    document.getElementById('requestSaveMessage').textContent='';
+    document.getElementById('requestEditor').hidden=false;
+    await loadRequestFiles(r.id);
+    document.getElementById('requestEditor').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  async function loadRequestFiles(requestId) {
+    const box=document.getElementById('requestFiles');
+    box.innerHTML='<p class="muted">Loading files…</p>';
+    const {data,error}=await client.from('request_files').select('*').eq('request_id',requestId).order('created_at');
+    if(error){box.innerHTML=`<p class="muted">${esc(error.message)}</p>`;return;}
+    if(!data?.length){box.innerHTML='<p class="muted">No reference files.</p>';return;}
+    box.innerHTML='';
+    for(const f of data){
+      const {data:urlData,error:urlError}=await client.storage.from('commission-references').createSignedUrl(f.storage_path,3600);
+      const wrap=document.createElement('div'); wrap.className='sample-admin-item';
+      if(!urlError && urlData?.signedUrl){
+        wrap.innerHTML=`<a href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(urlData.signedUrl)}" alt="${esc(f.original_name||'Reference')}" loading="lazy"></a><div class="muted" style="font-size:.75rem;padding:5px">${esc(f.original_name||'Reference')} · ${esc(f.file_type)}</div>`;
+      } else {
+        wrap.innerHTML=`<div class="muted" style="padding:12px">${esc(f.original_name||'Reference')}<br>${esc(urlError?.message||'Unable to load file')}</div>`;
+      }
+      box.appendChild(wrap);
+    }
+  }
+
+  document.getElementById('requestUpdateForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!currentRequestId)return;
+    const status=document.getElementById('requestStatus').value;
+    const priceValue=document.getElementById('requestFinalPrice').value;
+    const payload={
+      status,
+      final_price:priceValue===''?null:Number(priceValue),
+      payment_instructions:document.getElementById('requestPaymentInstructions').value.trim()||null,
+      decline_reason:document.getElementById('requestDeclineReason').value.trim()||null,
+      decline_message:document.getElementById('requestDeclineMessage').value.trim()||null
+    };
+    const now=new Date().toISOString();
+    if(status==='ACCEPTED_AWAITING_PAYMENT') payload.accepted_at=now;
+    if(status==='DECLINED') payload.declined_at=now;
+    if(status==='PAID') payload.paid_at=now;
+    if(status==='COMPLETED') payload.completed_at=now;
+    if(status==='PAYMENT_CLAIMED') payload.payment_claimed_at=now;
+    const {error}=await client.from('commission_requests').update(payload).eq('id',currentRequestId);
+    const msg=document.getElementById('requestSaveMessage');
+    if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
+    msg.textContent='Saved.';msg.style.color='';
+    await loadRequests();
+    const {data:r}=await client.from('commission_requests').select('*').eq('id',currentRequestId).single();
+    if(r) await openRequest(r);
+  });
+
+  document.getElementById('refreshRequestsBtn').addEventListener('click',loadRequests);
+  document.getElementById('closeRequestBtn').addEventListener('click',()=>{
+    currentRequestId=null;
+    document.getElementById('requestEditor').hidden=true;
   });
 
   await loadDashboard();
