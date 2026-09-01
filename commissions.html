@@ -18,11 +18,10 @@
   if(!offers?.length){container.innerHTML='<div class="notice">No commissions are currently listed.</div>';return;}
   container.innerHTML=offers.map(o=>{
     const opts=o.options&&typeof o.options==='object'?o.options:{};
-    const format=opts.format||'';
     const gallery=samples(o);
     const price=o.base_price==null?'Estimate':'$'+Number(o.base_price).toFixed(2);
-    const href=isOpen ? `request.html?type=${encodeURIComponent(o.category==='Custom Illustration'?'custom':'character')}${format?'&format='+encodeURIComponent(format):''}` : 'closed.html';
-    const button=o.category==='Character Illustration' ? `Request ${esc(o.name)}` : 'Request this commission';
+    const href=isOpen ? `request.html?offer=${encodeURIComponent(o.id)}` : 'closed.html';
+    const button=`Request ${esc(o.name)}`;
     return `<article class="card offer public-offer"><div class="tag">${esc(o.category)}</div><h2 style="font-size:2rem">${esc(o.name)}</h2>${o.description?`<p class="muted">${esc(o.description)}</p>`:''}<p class="price">${price}</p>${o.category==='Character Illustration'?'<p class="muted">Additional characters: <strong>70% of the selected base price</strong> · Commercial use: <strong>+100%</strong></p>':''}${gallery.length?`<div class="sample-gallery">${gallery.map((x,i)=>{const u=sampleUrl(x);return `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(o.name)} sample ${i+1}" loading="lazy"></a>`}).join('')}</div>`:''}<a class="btn btn-primary" href="${href}">${button}</a></article>`;
   }).join('');
 })().catch(()=>{const c=document.getElementById('publicCatalog');if(c)c.innerHTML='<p class="muted">Unable to load commissions right now.</p>';});
