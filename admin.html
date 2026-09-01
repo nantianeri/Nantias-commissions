@@ -57,73 +57,26 @@
 <div id="catalogList" style="margin-top:20px"></div>
 <div id="offerEditor" class="card" hidden style="margin-top:20px;background:rgba(255,255,255,.02)">
   <h3 id="editorTitle">Add Commission</h3>
-  <p class="muted">Configure exactly what this offer needs. The public request form will use these settings.</p>
   <form id="offerForm">
-    <label>Name *</label><input id="offerName" required placeholder="e.g. YCH #01">
-    <label>Category *</label><input id="offerCategory" required placeholder="e.g. YCH">
+    <label>Name *</label><input id="offerName" required placeholder="e.g. Bust Up">
+    <label>Category *</label><input id="offerCategory" required placeholder="e.g. Character Illustration">
     <label>Description</label><textarea id="offerDescription" placeholder="Describe what is included."></textarea>
-    <div class="grid grid-2" style="margin-top:12px">
-      <div><label>Base price</label><input id="offerPrice" type="number" min="0" step="0.01" placeholder="12.00"></div>
-      <div><label>Pricing model</label><select id="pricingType"><option value="fixed">Fixed price</option><option value="estimate">Estimate</option></select></div>
-    </div>
+    <label>Base price (leave blank for estimate)</label><input id="offerPrice" type="number" min="0" step="0.01" placeholder="45.00">
     <label>Sort order</label><input id="offerSort" type="number" step="1" value="0">
     <label class="check"><input id="offerActive" type="checkbox" checked><span>Visible on public site</span></label>
-
-    <div class="card" style="margin-top:20px"><h4>Characters</h4>
-      <label>Character quantity</label>
-      <select id="charMode"><option value="none">No character quantity</option><option value="fixed">Fixed number</option><option value="select">Customer chooses quantity</option></select>
-      <div id="charSettings" class="grid grid-3" style="margin-top:12px">
-        <div><label>Fixed / default quantity</label><input id="charFixed" type="number" min="1" max="50" value="1"></div>
-        <div><label>Minimum</label><input id="charMin" type="number" min="1" max="50" value="1"></div>
-        <div><label>Maximum</label><input id="charMax" type="number" min="1" max="50" value="4"></div>
-      </div>
-      <label class="check"><input id="extraCharEnabled" type="checkbox"><span>Allow additional characters</span></label>
-      <div id="extraCharSettings"><label>Additional character rate (% of base price)</label><input id="extraCharRate" type="number" min="0" max="1000" step="1" value="70"></div>
+    <div style="margin-top:18px">
+      <strong>Sample images <span class="muted">(optional)</span></strong>
+      <p class="muted" style="margin:6px 0 12px">If you add no samples, nothing will appear on the public commission card. You can add multiple images.</p>
+      <div id="sampleList" class="sample-admin-grid"></div>
+      <button id="addSampleBtn" class="btn" type="button">+ Add Sample(s)</button>
+      <input id="sampleInput" type="file" accept="image/*" multiple hidden>
     </div>
-
-    <div class="card" style="margin-top:20px"><h4>Character references</h4>
-      <label class="check"><input id="charRefsEnabled" type="checkbox"><span>Require character reference uploads</span></label>
-      <label>Reference rule</label>
-      <select id="charRefsRule"><option value="per_character">One required reference per character</option><option value="fixed">Fixed number of required references</option></select>
-      <div id="charRefsFixedWrap"><label>Required reference count</label><input id="charRefsFixed" type="number" min="1" max="50" value="1"></div>
-      <label class="check"><input id="additionalRefsEnabled" type="checkbox" checked><span>Allow additional reference uploads</span></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
+      <button class="btn btn-primary" type="submit">Save Commission</button>
+      <button id="cancelOfferBtn" class="btn" type="button">Cancel</button>
     </div>
-
-    <div class="card" style="margin-top:20px"><h4>Background</h4>
-      <label class="check"><input id="backgroundEnabled" type="checkbox"><span>Show background options to the customer</span></label>
-      <p class="muted">Turn this OFF for offers where the artwork/background is already fixed, such as many YCHs.</p>
-      <div id="backgroundSettings">
-        <label class="check"><input type="checkbox" class="bgChoice" value="transparent"><span>Transparent / No Background</span></label>
-        <label class="check"><input type="checkbox" class="bgChoice" value="simple"><span>Simple Background</span></label>
-        <label class="check"><input type="checkbox" class="bgChoice" value="detailed"><span>Detailed Background</span></label>
-        <label class="check"><input type="checkbox" class="bgChoice" value="highly-detailed"><span>Highly Detailed Scene</span></label>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:20px"><h4>Commercial use</h4>
-      <label class="check"><input id="commercialEnabled" type="checkbox" checked><span>Offer commercial use</span></label>
-      <label>Commercial fee (% of calculated subtotal)</label><input id="commercialRate" type="number" min="0" max="1000" step="1" value="100">
-    </div>
-
-    <div class="card" style="margin-top:20px"><h4>Urgent / priority handling</h4>
-      <label class="check"><input id="urgentEnabled" type="checkbox" checked><span>Offer urgent / priority handling</span></label>
-      <label>Urgency fee</label><input id="urgentFee" type="number" min="0" step="0.01" value="15">
-      <p class="muted">When selected by the customer, the $15 (or configured) urgency fee is added automatically and a requested deadline is required. Standard turnaround remains about 1 week to 1 month.</p>
-    </div>
-
-    <div class="card" style="margin-top:20px"><h4>Request fields</h4><p class="muted">Only enabled fields appear on this offer's request form. Required fields cannot be skipped.</p>
-      <div id="fieldToggles"></div>
-    </div>
-
-    <div class="card" style="margin-top:20px"><h4>Custom questions</h4><p class="muted">Add offer-specific questions such as expression, outfit, color choice, or anything else you need.</p>
-      <div id="customFieldList"></div>
-      <button id="addCustomField" class="btn" type="button">+ Add Question</button>
-    </div>
-
-    <div style="margin-top:18px"><strong>Sample images</strong><p class="muted" style="margin:6px 0 12px">Optional. If none are added, no gallery appears.</p><div id="sampleList" class="sample-admin-grid"></div><button id="addSampleBtn" class="btn" type="button">+ Add Sample(s)</button><input id="sampleInput" type="file" accept="image/*" multiple hidden></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px"><button class="btn btn-primary" type="submit">Save Commission</button><button id="cancelOfferBtn" class="btn" type="button">Cancel</button></div>
   </form>
-</div></div>
+</div>
 </div>
 </div>
 </div></section>
@@ -131,31 +84,213 @@
 <footer><div class="container"><strong>NANTIA</strong><br>Character Artist & Illustrator<br><small>© 2026 Nantia. Commission website.</small></div></footer>
 <script>
 (async function(){
-  const msg=document.getElementById('loginMessage'),loginView=document.getElementById('loginView'),dashboard=document.getElementById('dashboardView'),loginForm=document.getElementById('loginForm'),logout=document.getElementById('logoutBtn');
-  const client=await window.NANTIA_V6.init();
-  if(!client){msg.textContent='Supabase is not configured yet.';return;}
-  const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const defaultFields={description:{label:'What would you like me to draw?',enabled:true,required:true},mood:{label:'Preferred mood / lighting',enabled:true,required:false},urgent:{label:'Urgent / priority handling',enabled:true,required:false},additional:{label:'Anything else I should know?',enabled:true,required:false}};
-  const defaults=()=>({version:2,pricing:{type:'fixed',commercial:{enabled:true,rate:100},additionalCharacter:{enabled:false,rate:70},urgent:{enabled:true,fee:15}},characters:{mode:'none',fixed:1,min:1,max:4},references:{character:{enabled:false,rule:'per_character',fixedCount:1},additional:true},background:{enabled:false,choices:[]},fields:JSON.parse(JSON.stringify(defaultFields)),customFields:[],samples:[]});
-  let currentOfferId=null,currentSamples=[],currentConfig=defaults(),currentCustomFields=[];
-  const sampleData=o=>Array.isArray(o?.options?.samples)?o.options.samples:[];
-  const publicSampleUrl=x=>x?.url||(x?.path?client.storage.from('commission-assets').getPublicUrl(x.path).data.publicUrl:'');
-  function show(text,error=false){const e=document.getElementById('catalogMessage');e.textContent=text||'';e.style.color=error?'var(--pink)':'';}
-  function mergeConfig(o){const base=defaults(), raw=(o?.options&&typeof o.options==='object')?o.options:{}; const cfg={...base,...raw,pricing:{...base.pricing,...(raw.pricing||{}),commercial:{...base.pricing.commercial,...(raw.pricing?.commercial||{})},additionalCharacter:{...base.pricing.additionalCharacter,...(raw.pricing?.additionalCharacter||{})}},characters:{...base.characters,...(raw.characters||{})},references:{...base.references,...(raw.references||{}),character:{...base.references.character,...(raw.references?.character||{})}},background:{...base.background,...(raw.background||{})},fields:{...base.fields,...(raw.fields||{})},customFields:Array.isArray(raw.customFields)?raw.customFields:[],samples:Array.isArray(raw.samples)?raw.samples:sampleData(o)};return cfg;}
-  function renderFields(fields){const box=document.getElementById('fieldToggles');box.innerHTML=Object.entries(defaultFields).map(([k,d])=>{const f=fields[k]||d;return `<div class="card" style="margin:8px 0;padding:12px"><label class="check"><input type="checkbox" data-field-enabled="${k}" ${f.enabled?'checked':''}><span>${esc(d.label)}</span></label><label class="check"><input type="checkbox" data-field-required="${k}" ${f.required?'checked':''} ${f.enabled?'':'disabled'}><span>Required</span></label></div>`}).join('');box.querySelectorAll('[data-field-enabled]').forEach(x=>x.addEventListener('change',()=>{const k=x.dataset.fieldEnabled;box.querySelector(`[data-field-required="${k}"]`).disabled=!x.checked;if(!x.checked)box.querySelector(`[data-field-required="${k}"]`).checked=false;}));}
-  function renderCustomFields(){const box=document.getElementById('customFieldList'); if(!currentCustomFields.length){box.innerHTML='<p class="muted">No custom questions yet.</p>';return;} box.innerHTML=currentCustomFields.map((f,i)=>`<div class="card" style="margin:10px 0;padding:14px"><div class="grid grid-2"><div><label>Question</label><input data-cf-label="${i}" value="${esc(f.label)}"></div><div><label>Type</label><select data-cf-type="${i}"><option value="text" ${f.type==='text'?'selected':''}>Text</option><option value="textarea" ${f.type==='textarea'?'selected':''}>Long text</option><option value="select" ${f.type==='select'?'selected':''}>Dropdown</option><option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option></select></div></div><label class="check"><input type="checkbox" data-cf-required="${i}" ${f.required?'checked':''}><span>Required</span></label><div data-cf-options-wrap="${i}" ${f.type==='select'?'':'hidden'}><label>Dropdown options (one per line)</label><textarea data-cf-options="${i}">${esc((f.options||[]).join('\n'))}</textarea></div><button type="button" class="btn danger" data-cf-remove="${i}">Remove</button></div>`).join('');box.querySelectorAll('[data-cf-type]').forEach(x=>x.addEventListener('change',()=>{const i=+x.dataset.cfType;currentCustomFields[i].type=x.value;renderCustomFields();}));box.querySelectorAll('[data-cf-remove]').forEach(x=>x.addEventListener('click',()=>{currentCustomFields.splice(+x.dataset.cfRemove,1);renderCustomFields();}));}
-  function collectConfig(){const cfg=JSON.parse(JSON.stringify(currentConfig));cfg.version=2;cfg.pricing.type=document.getElementById('pricingType').value;cfg.pricing.commercial.enabled=document.getElementById('commercialEnabled').checked;cfg.pricing.commercial.rate=Number(document.getElementById('commercialRate').value)||0;cfg.pricing.additionalCharacter.enabled=document.getElementById('extraCharEnabled').checked;cfg.pricing.additionalCharacter.rate=Number(document.getElementById('extraCharRate').value)||0;cfg.pricing.urgent.enabled=document.getElementById('urgentEnabled').checked;cfg.pricing.urgent.fee=Math.max(0,Number(document.getElementById('urgentFee').value)||0);cfg.characters.mode=document.getElementById('charMode').value;cfg.characters.fixed=Math.max(1,Number(document.getElementById('charFixed').value)||1);cfg.characters.min=Math.max(1,Number(document.getElementById('charMin').value)||1);cfg.characters.max=Math.max(cfg.characters.min,Number(document.getElementById('charMax').value)||cfg.characters.min);cfg.references.character.enabled=document.getElementById('charRefsEnabled').checked;cfg.references.character.rule=document.getElementById('charRefsRule').value;cfg.references.character.fixedCount=Math.max(1,Number(document.getElementById('charRefsFixed').value)||1);cfg.references.additional=document.getElementById('additionalRefsEnabled').checked;cfg.background.enabled=document.getElementById('backgroundEnabled').checked;cfg.background.choices=[...document.querySelectorAll('.bgChoice:checked')].map(x=>x.value);Object.keys(defaultFields).forEach(k=>{const en=document.querySelector(`[data-field-enabled="${k}"]`),rq=document.querySelector(`[data-field-required="${k}"]`);cfg.fields[k]={...defaultFields[k],enabled:!!en?.checked,required:!!rq?.checked};});cfg.customFields=currentCustomFields.map((f,i)=>{const label=document.querySelector(`[data-cf-label="${i}"]`)?.value.trim()||f.label;const type=document.querySelector(`[data-cf-type="${i}"]`)?.value||f.type;const required=!!document.querySelector(`[data-cf-required="${i}"]`)?.checked;const options=(document.querySelector(`[data-cf-options="${i}"]`)?.value||'').split(/\n/).map(x=>x.trim()).filter(Boolean);return {id:f.id||('q'+Date.now()+i),label,type,required,options};});return cfg;}
-  function renderSamples(){const box=document.getElementById('sampleList');if(!currentSamples.length){box.innerHTML='<p class="muted">No samples added.</p>';return;}box.innerHTML=currentSamples.map((x,i)=>`<div class="sample-admin-item"><img src="${esc(publicSampleUrl(x))}" alt="${esc(x.name||'Commission sample')}" loading="lazy"><button type="button" class="sample-remove" data-sample-index="${i}" aria-label="Remove sample">×</button></div>`).join('');box.querySelectorAll('[data-sample-index]').forEach(b=>b.onclick=async()=>{const i=+b.dataset.sampleIndex,x=currentSamples[i];currentSamples.splice(i,1);renderSamples();if(x?.path)await client.storage.from('commission-assets').remove([x.path]);await saveOptions();});}
-  async function saveOptions(){if(!currentOfferId)return;const {data:o,error}=await client.from('commission_offers').select('options').eq('id',currentOfferId).single();if(error){show(error.message,true);return;}const options=(o?.options&&typeof o.options==='object')?o.options:{};options.samples=currentSamples;const cfg=collectConfig();Object.assign(options,cfg);const {error:e}=await client.from('commission_offers').update({options}).eq('id',currentOfferId);if(e)show(e.message,true);}
-  async function uploadSamples(files){if(!currentOfferId){show('Save the commission first, then add sample images.',true);return;}for(const file of files){if(!file.type.startsWith('image/'))continue;const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'')||'sample-image';const path=`commission-samples/${currentOfferId}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;const {error}=await client.storage.from('commission-assets').upload(path,file,{upsert:false,contentType:file.type});if(error){show(error.message,true);continue;}currentSamples.push({path,url:client.storage.from('commission-assets').getPublicUrl(path).data.publicUrl,name:file.name});}renderSamples();await saveOptions();show('Sample image(s) saved.');}
-  function syncVisibility(){const mode=document.getElementById('charMode').value;document.getElementById('charSettings').hidden=mode==='none';document.getElementById('extraCharSettings').hidden=!document.getElementById('extraCharEnabled').checked;document.getElementById('backgroundSettings').hidden=!document.getElementById('backgroundEnabled').checked;document.getElementById('charRefsFixedWrap').hidden=document.getElementById('charRefsRule').value!=='fixed';}
-  function openEditor(offer=null){currentOfferId=offer?.id||null;currentConfig=mergeConfig(offer);currentSamples=[...currentConfig.samples].map(x=>({...x}));currentCustomFields=JSON.parse(JSON.stringify(currentConfig.customFields||[]));document.getElementById('editorTitle').textContent=offer?`Edit ${offer.name}`:'Add Commission';document.getElementById('offerName').value=offer?.name||'';document.getElementById('offerCategory').value=offer?.category||'Character Illustration';document.getElementById('offerDescription').value=offer?.description||'';document.getElementById('offerPrice').value=offer?.base_price??'';document.getElementById('offerSort').value=offer?.sort_order??0;document.getElementById('offerActive').checked=offer?!!offer.active:true;document.getElementById('pricingType').value=currentConfig.pricing.type||((offer?.base_price==null)?'estimate':'fixed');document.getElementById('charMode').value=currentConfig.characters.mode;document.getElementById('charFixed').value=currentConfig.characters.fixed;document.getElementById('charMin').value=currentConfig.characters.min;document.getElementById('charMax').value=currentConfig.characters.max;document.getElementById('extraCharEnabled').checked=currentConfig.pricing.additionalCharacter.enabled;document.getElementById('extraCharRate').value=currentConfig.pricing.additionalCharacter.rate;document.getElementById('urgentEnabled').checked=currentConfig.pricing.urgent.enabled;document.getElementById('urgentFee').value=currentConfig.pricing.urgent.fee;document.getElementById('charRefsEnabled').checked=currentConfig.references.character.enabled;document.getElementById('charRefsRule').value=currentConfig.references.character.rule;document.getElementById('charRefsFixed').value=currentConfig.references.character.fixedCount;document.getElementById('additionalRefsEnabled').checked=currentConfig.references.additional;document.getElementById('backgroundEnabled').checked=currentConfig.background.enabled;document.querySelectorAll('.bgChoice').forEach(x=>x.checked=currentConfig.background.choices.includes(x.value));document.getElementById('commercialEnabled').checked=currentConfig.pricing.commercial.enabled;document.getElementById('commercialRate').value=currentConfig.pricing.commercial.rate;renderFields(currentConfig.fields);renderCustomFields();renderSamples();syncVisibility();document.getElementById('offerEditor').hidden=false;document.getElementById('offerEditor').scrollIntoView({behavior:'smooth',block:'start'});}
-  function closeEditor(){document.getElementById('offerEditor').hidden=true;currentOfferId=null;currentSamples=[];currentCustomFields=[];}
-  async function loadCatalog(){const {data:offers,error}=await client.from('commission_offers').select('*').order('sort_order');if(error){show(error.message,true);return;}const list=document.getElementById('catalogList');list.innerHTML=(offers||[]).map(o=>{const cfg=mergeConfig(o),samples=sampleData(o);return `<div class="catalog-admin-row"><div><strong>${esc(o.name)}</strong><div class="muted">${esc(o.category)} · ${o.base_price==null?'Estimate':'$'+Number(o.base_price).toFixed(2)} · ${o.active?'VISIBLE':'HIDDEN'} · ${samples.length} sample${samples.length===1?'':'s'} · ${esc(cfg.pricing.type)} · ${esc(cfg.characters.mode)} chars</div></div><div class="catalog-admin-actions"><button type="button" class="btn" data-edit-offer="${o.id}">Edit</button><button type="button" class="btn" data-toggle-offer="${o.id}">${o.active?'Hide':'Show'}</button><button type="button" class="btn danger" data-delete-offer="${o.id}">Delete</button></div></div>`}).join('')||'<p class="muted">No offers yet.</p>';list.querySelectorAll('[data-edit-offer]').forEach(b=>b.onclick=()=>openEditor((offers||[]).find(o=>o.id===b.dataset.editOffer)));list.querySelectorAll('[data-toggle-offer]').forEach(b=>b.onclick=async()=>{const o=(offers||[]).find(x=>x.id===b.dataset.toggleOffer);if(!o)return;const {error}=await client.from('commission_offers').update({active:!o.active}).eq('id',o.id);if(error)show(error.message,true);else loadCatalog();});list.querySelectorAll('[data-delete-offer]').forEach(b=>b.onclick=async()=>{const o=(offers||[]).find(x=>x.id===b.dataset.deleteOffer);if(!o||!confirm(`Delete ${o.name}? This cannot be undone.`))return;const paths=sampleData(o).map(x=>x.path).filter(Boolean);if(paths.length)await client.storage.from('commission-assets').remove(paths);const {error}=await client.from('commission_offers').delete().eq('id',o.id);if(error)show(error.message,true);else{closeEditor();loadCatalog();}});}
-  async function dashboardLoad(){const {data:{user}}=await client.auth.getUser();if(!user){loginView.hidden=false;dashboard.hidden=true;return;}const {data:profile}=await client.from('profiles').select('role').eq('id',user.id).single();if(!profile||profile.role!=='admin'){msg.textContent='This account is not authorized as an admin.';await client.auth.signOut();return;}loginView.hidden=true;dashboard.hidden=false;const {data:settings}=await client.from('site_settings').select('commissions_open').eq('id',true).single();if(settings)document.getElementById('openToggle').checked=settings.commissions_open;const {data:requests}=await client.from('commission_requests').select('status');if(requests){document.getElementById('newCount').textContent=requests.filter(r=>r.status==='NEW').length;document.getElementById('paymentCount').textContent=requests.filter(r=>r.status==='ACCEPTED_AWAITING_PAYMENT'||r.status==='PAYMENT_CLAIMED').length;document.getElementById('progressCount').textContent=requests.filter(r=>r.status==='IN_PROGRESS').length;}await loadCatalog();}
-  ['charMode','extraCharEnabled','backgroundEnabled','charRefsRule'].forEach(id=>document.getElementById(id).addEventListener('change',syncVisibility));
-  document.getElementById('addOfferBtn').onclick=()=>openEditor();document.getElementById('cancelOfferBtn').onclick=closeEditor;document.getElementById('addSampleBtn').onclick=()=>currentOfferId?document.getElementById('sampleInput').click():show('Save the commission first, then add sample images.',true);document.getElementById('sampleInput').onchange=async e=>{await uploadSamples([...e.target.files]);e.target.value='';};document.getElementById('addCustomField').onclick=()=>{currentCustomFields.push({id:'q'+Date.now(),label:'New question',type:'text',required:false,options:[]});renderCustomFields();};document.getElementById('offerForm').onsubmit=async e=>{e.preventDefault();const payload={name:document.getElementById('offerName').value.trim(),category:document.getElementById('offerCategory').value.trim(),description:document.getElementById('offerDescription').value.trim()||null,base_price:document.getElementById('offerPrice').value===''?null:Number(document.getElementById('offerPrice').value),sort_order:Number(document.getElementById('offerSort').value)||0,active:document.getElementById('offerActive').checked};show('Saving…');let result;if(currentOfferId)result=await client.from('commission_offers').update(payload).eq('id',currentOfferId).select('*').single();else result=await client.from('commission_offers').insert({...payload,options:defaults()}).select('*').single();if(result.error){show(result.error.message,true);return;}currentOfferId=result.data.id;const cfg=collectConfig();currentConfig=cfg;currentSamples=sampleData(result.data).map(x=>({...x}));const {data:o}=await client.from('commission_offers').select('options').eq('id',currentOfferId).single();const options=(o?.options&&typeof o.options==='object')?o.options:{};Object.assign(options,cfg);options.samples=currentSamples;const {error:e2}=await client.from('commission_offers').update({options}).eq('id',currentOfferId);if(e2){show(e2.message,true);return;}show('Saved.');await loadCatalog();openEditor((await client.from('commission_offers').select('*').eq('id',currentOfferId).single()).data);};
-  loginForm.onsubmit=async e=>{e.preventDefault();msg.textContent='Signing in…';const {error}=await client.auth.signInWithPassword({email:document.getElementById('loginEmail').value.trim(),password:document.getElementById('loginPassword').value});msg.textContent=error?error.message:'';if(!error)await dashboardLoad();};logout.onclick=async()=>{await client.auth.signOut();await dashboardLoad();};document.getElementById('openToggle').onchange=async e=>{const {error}=await client.from('site_settings').update({commissions_open:e.target.checked}).eq('id',true);document.getElementById('settingsMessage').textContent=error?error.message:'Saved.'};await dashboardLoad();
+  const msg = document.getElementById('loginMessage');
+  const loginView = document.getElementById('loginView');
+  const dashboard = document.getElementById('dashboardView');
+  const loginForm = document.getElementById('loginForm');
+  const logout = document.getElementById('logoutBtn');
+
+  const client = await window.NANTIA_V6.init();
+  if (!client) {
+    msg.textContent = 'Supabase is not configured yet. Add your project URL and anon/publishable key to js/supabase-config.js.';
+    return;
+  }
+
+  async function loadDashboard() {
+    const {data:{user}} = await client.auth.getUser();
+    if (!user) { loginView.hidden=false; dashboard.hidden=true; return; }
+    const {data:profile} = await client.from('profiles').select('role').eq('id',user.id).single();
+    if (!profile || profile.role !== 'admin') {
+      msg.textContent = 'This account is not authorized as an admin.';
+      await client.auth.signOut();
+      return;
+    }
+    loginView.hidden=true; dashboard.hidden=false;
+
+    const {data:settings} = await client.from('site_settings').select('*').eq('id',true).single();
+    if (settings) document.getElementById('openToggle').checked = settings.commissions_open;
+
+    const {data:requests} = await client.from('commission_requests').select('status');
+    if (requests) {
+      document.getElementById('newCount').textContent = requests.filter(r=>r.status==='NEW').length;
+      document.getElementById('paymentCount').textContent = requests.filter(r=>r.status==='ACCEPTED_AWAITING_PAYMENT' || r.status==='PAYMENT_CLAIMED').length;
+      document.getElementById('progressCount').textContent = requests.filter(r=>r.status==='IN_PROGRESS').length;
+    }
+
+    await loadCatalog();
+  }
+
+  let currentOfferId = null;
+  let currentSamples = [];
+
+  const esc = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  const sampleData = offer => Array.isArray(offer?.options?.samples) ? offer.options.samples : [];
+  const publicSampleUrl = sample => {
+    if (!sample) return '';
+    if (sample.url) return sample.url;
+    if (sample.path) return client.storage.from('commission-assets').getPublicUrl(sample.path).data.publicUrl;
+    return '';
+  };
+
+  function renderSamples() {
+    const box = document.getElementById('sampleList');
+    if (!currentSamples.length) {
+      box.innerHTML = '<p class="muted">No samples added.</p>';
+      return;
+    }
+    box.innerHTML = currentSamples.map((sample, i) => {
+      const url = publicSampleUrl(sample);
+      return `<div class="sample-admin-item">
+        <img src="${esc(url)}" alt="${esc(sample.name || 'Commission sample')}" loading="lazy">
+        <button type="button" class="sample-remove" data-sample-index="${i}" aria-label="Remove sample">×</button>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('[data-sample-index]').forEach(btn => btn.addEventListener('click', async () => {
+      const i = Number(btn.dataset.sampleIndex);
+      const sample = currentSamples[i];
+      currentSamples.splice(i, 1);
+      renderSamples();
+      if (sample?.path) {
+        const {error} = await client.storage.from('commission-assets').remove([sample.path]);
+        if (error) showCatalogMessage(error.message, true);
+      }
+      if (currentOfferId) await saveSamples();
+    }));
+  }
+
+  async function saveSamples() {
+    if (!currentOfferId) return;
+    const {data:offer, error:getError} = await client.from('commission_offers').select('options').eq('id', currentOfferId).single();
+    if (getError) { showCatalogMessage(getError.message, true); return; }
+    const options = (offer && offer.options && typeof offer.options === 'object') ? offer.options : {};
+    options.samples = currentSamples;
+    const {error} = await client.from('commission_offers').update({options}).eq('id', currentOfferId);
+    if (error) showCatalogMessage(error.message, true);
+  }
+
+  async function uploadSamples(files) {
+    if (!files.length) return;
+    if (!currentOfferId) {
+      showCatalogMessage('Save the commission first, then add sample images.', true);
+      return;
+    }
+    showCatalogMessage('Uploading sample image(s)…');
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'sample-image';
+      const path = `commission-samples/${currentOfferId}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
+      const {error} = await client.storage.from('commission-assets').upload(path, file, {upsert:false, contentType:file.type});
+      if (error) { showCatalogMessage(error.message, true); continue; }
+      const url = client.storage.from('commission-assets').getPublicUrl(path).data.publicUrl;
+      currentSamples.push({path, url, name:file.name});
+    }
+    renderSamples();
+    await saveSamples();
+    showCatalogMessage('Sample image(s) saved.');
+  }
+
+  function showCatalogMessage(text, error=false) {
+    const el=document.getElementById('catalogMessage');
+    el.textContent=text || '';
+    el.style.color = error ? 'var(--pink)' : '';
+  }
+
+  function openEditor(offer=null) {
+    currentOfferId = offer?.id || null;
+    currentSamples = sampleData(offer).map(x => ({...x}));
+    document.getElementById('editorTitle').textContent = offer ? `Edit ${offer.name}` : 'Add Commission';
+    document.getElementById('offerName').value = offer?.name || '';
+    document.getElementById('offerCategory').value = offer?.category || 'Character Illustration';
+    document.getElementById('offerDescription').value = offer?.description || '';
+    document.getElementById('offerPrice').value = offer?.base_price ?? '';
+    document.getElementById('offerSort').value = offer?.sort_order ?? 0;
+    document.getElementById('offerActive').checked = offer ? !!offer.active : true;
+    document.getElementById('offerEditor').hidden = false;
+    renderSamples();
+    document.getElementById('offerEditor').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function closeEditor() {
+    document.getElementById('offerEditor').hidden = true;
+    currentOfferId = null;
+    currentSamples = [];
+  }
+
+  async function loadCatalog() {
+    const {data:offers,error} = await client.from('commission_offers').select('*').order('sort_order');
+    if (error) { showCatalogMessage(error.message, true); return; }
+    const list=document.getElementById('catalogList');
+    list.innerHTML = (offers||[]).map(o => {
+      const samples=sampleData(o);
+      return `<div class="catalog-admin-row">
+        <div><strong>${esc(o.name)}</strong><div class="muted">${esc(o.category)} · ${o.base_price == null ? 'Estimate' : '$'+Number(o.base_price).toFixed(2)} · ${o.active ? 'VISIBLE' : 'HIDDEN'} · ${samples.length} sample${samples.length===1?'':'s'}</div></div>
+        <div class="catalog-admin-actions"><button type="button" class="btn" data-edit-offer="${o.id}">Edit</button><button type="button" class="btn" data-toggle-offer="${o.id}">${o.active?'Hide':'Show'}</button><button type="button" class="btn danger" data-delete-offer="${o.id}">Delete</button></div>
+      </div>`;
+    }).join('') || '<p class="muted">No offers yet.</p>';
+    list.querySelectorAll('[data-edit-offer]').forEach(b=>b.addEventListener('click',()=>openEditor((offers||[]).find(o=>o.id===b.dataset.editOffer))));
+    list.querySelectorAll('[data-toggle-offer]').forEach(b=>b.addEventListener('click',async()=>{
+      const offer=(offers||[]).find(o=>o.id===b.dataset.toggleOffer); if(!offer)return;
+      const {error}=await client.from('commission_offers').update({active:!offer.active}).eq('id',offer.id);
+      if(error)showCatalogMessage(error.message,true); else await loadCatalog();
+    }));
+    list.querySelectorAll('[data-delete-offer]').forEach(b=>b.addEventListener('click',async()=>{
+      const offer=(offers||[]).find(o=>o.id===b.dataset.deleteOffer); if(!offer)return;
+      if(!confirm(`Delete ${offer.name}? This cannot be undone.`))return;
+      const paths=sampleData(offer).map(x=>x.path).filter(Boolean);
+      if(paths.length) await client.storage.from('commission-assets').remove(paths);
+      const {error}=await client.from('commission_offers').delete().eq('id',offer.id);
+      if(error)showCatalogMessage(error.message,true); else {closeEditor();await loadCatalog();}
+    }));
+  }
+
+  document.getElementById('addOfferBtn').addEventListener('click',()=>openEditor());
+  document.getElementById('cancelOfferBtn').addEventListener('click',closeEditor);
+  document.getElementById('addSampleBtn').addEventListener('click',()=>{
+    if (!currentOfferId) { showCatalogMessage('Save the commission first, then add sample images.', true); return; }
+    document.getElementById('sampleInput').click();
+  });
+  document.getElementById('sampleInput').addEventListener('change',async e=>{await uploadSamples([...e.target.files]);e.target.value='';});
+  document.getElementById('offerForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const payload={
+      name:document.getElementById('offerName').value.trim(),
+      category:document.getElementById('offerCategory').value.trim(),
+      description:document.getElementById('offerDescription').value.trim() || null,
+      base_price:document.getElementById('offerPrice').value === '' ? null : Number(document.getElementById('offerPrice').value),
+      sort_order:Number(document.getElementById('offerSort').value)||0,
+      active:document.getElementById('offerActive').checked
+    };
+    showCatalogMessage('Saving…');
+    let result;
+    if(currentOfferId) result=await client.from('commission_offers').update(payload).eq('id',currentOfferId).select('*').single();
+    else result=await client.from('commission_offers').insert({...payload,options:{}}).select('*').single();
+    if(result.error){showCatalogMessage(result.error.message,true);return;}
+    currentOfferId=result.data.id;
+    currentSamples=sampleData(result.data).map(x=>({...x}));
+    await saveSamples();
+    showCatalogMessage('Saved.');
+    await loadCatalog();
+    openEditor(result.data);
+  });
+
+  loginForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    msg.textContent='Signing in…';
+    const {error} = await client.auth.signInWithPassword({
+      email: document.getElementById('loginEmail').value.trim(),
+      password: document.getElementById('loginPassword').value
+    });
+    msg.textContent = error ? error.message : '';
+    if (!error) await loadDashboard();
+  });
+
+  logout.addEventListener('click', async ()=>{ await client.auth.signOut(); await loadDashboard(); });
+  document.getElementById('openToggle').addEventListener('change', async e=>{
+    const {error}=await client.from('site_settings').update({commissions_open:e.target.checked}).eq('id',true);
+    document.getElementById('settingsMessage').textContent = error ? error.message : 'Saved.';
+  });
+
+  await loadDashboard();
 })();
 </script>
 <script src="js/script.js"></script>
