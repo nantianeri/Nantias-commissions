@@ -1,29 +1,114 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Commissions — Nantia's Commissions</title><link rel="stylesheet" href="css/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Commissions — Nantia's Commissions</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/v6.js"></script>
-</head><body><header><div class="container nav"><a class="logo" href="index.html">NANTIA</a><nav class="navlinks"><a href="portfolio.html">Portfolio</a><a href="commissions.html">Commissions</a><a href="how-it-works.html">How It Works</a><a href="faq.html">FAQ</a><a href="tos.html">TOS</a></nav><a class="btn btn-primary" data-request-link href="commissions.html">Request a Commission</a><button class="menu">☰</button></div></header><main><section class="section"><div class="container"><div class="eyebrow">Commissions</div><h1>Choose what fits your budget.</h1><div class="availability" data-commission-open><span class="dot"></span><strong class="open-state">Requests are currently OPEN</strong><strong class="closed-state" hidden>Requests are currently CLOSED</strong></div><p class="lead">Character Illustration is for character-focused work. Detailed backgrounds and scenes belong under Custom Illustration.</p><div class="notice" style="margin-top:18px"><strong>Standard turnaround: 1 week – 1 month.</strong> Need it sooner? Priority handling is available for <strong>+$15</strong> when your requested date can be accommodated.</div><div id="publicCatalog" class="commission-catalog-public" style="margin-top:35px"><p class="muted">Loading commissions…</p></div></div></section><section class="section"><div class="container grid grid-2"><div class="card"><div class="eyebrow">What I Draw</div><h2 style="font-size:2rem">Yes.</h2><p class="muted">Characters, original characters, fan art, creatures, character + creature concepts, expressive poses, illustrated scenes and story-driven compositions.</p></div><div class="card"><div class="eyebrow">What I Don't Draw</div><h2 style="font-size:2rem">Not for me.</h2><p class="muted">I reserve the right to decline requests outside my skills, boundaries or schedule. The exact no-draw list can be expanded before launch.</p></div></div></section><section class="cta-band"><div class="container"><div class="section-head"><div><div class="eyebrow">Ready?</div><h2>Send your commission request.</h2><p class="muted">Please only request if you're prepared to pay if accepted.</p></div><a class="btn btn-primary" data-request-link href="request.html">Start Request</a></div></div></section></main><footer><div class="container"><div class="grid grid-2"><div><strong>NANTIA</strong><br>Character Artist & Illustrator</div><div><strong>Find me online</strong><div class="socials"><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Tumblr</a></div></div></div><br><small>© 2026 Nantia. Commission website.</small></div></footer><script>
+</head>
+<body>
+<header><div class="container nav">
+<a class="logo" href="index.html">NANTIA</a>
+<nav class="navlinks"><a href="portfolio.html">Portfolio</a><a class="active" href="commissions.html">Commissions</a><a href="how-it-works.html">How It Works</a><a href="faq.html">FAQ</a><a href="tos.html">TOS</a></nav>
+<a class="btn btn-primary" data-request-link href="commissions.html">Request a Commission</a><button class="menu" aria-label="Open navigation">☰</button>
+</div></header>
+
+<main>
+<section class="section commissions-hero">
+<div class="container">
+<div class="eyebrow">Commissions</div>
+<div class="commission-intro">
+  <div>
+    <h1>Choose your commission.</h1>
+    <p class="lead">Browse the available offers below. Each offer has its own options and requirements, so you'll only see the choices that apply to what you want to order.</p>
+  </div>
+  <div class="availability availability-card" data-commission-open>
+    <span class="dot"></span>
+    <div><strong class="open-state">Requests are currently OPEN</strong><strong class="closed-state" hidden>Requests are currently CLOSED</strong><p class="small muted">Standard turnaround: 1 week – 1 month.</p></div>
+  </div>
+</div>
+<div class="notice priority-notice"><strong>Need it sooner?</strong> Priority handling may be available for <strong>+$15</strong> when your requested date can be accommodated. The priority option appears in the request form only when an offer supports it.</div>
+</div>
+</section>
+
+<section class="section catalog-section">
+<div class="container">
+<div id="publicCatalog" class="commission-catalog-public"><p class="muted">Loading commissions…</p></div>
+</div>
+</section>
+
+<section class="section boundaries-section">
+<div class="container grid grid-2">
+<div class="card info-card"><div class="eyebrow">What I Draw</div><h2>Yes.</h2><p class="muted">Characters, original characters, fan art, creatures, character + creature concepts, expressive poses, illustrated scenes and story-driven compositions.</p></div>
+<div class="card info-card"><div class="eyebrow">What I Don't Draw</div><h2>Not for me.</h2><p class="muted">I reserve the right to decline requests outside my skills, boundaries or schedule. The exact no-draw list can be expanded before launch.</p></div>
+</div>
+</section>
+
+<section class="cta-band"><div class="container"><div class="section-head"><div><div class="eyebrow">Ready?</div><h2>Send your commission request.</h2><p class="muted">Please only request if you're prepared to pay if accepted.</p></div><a class="btn btn-primary" data-request-link href="request.html">Start Request</a></div></div></section>
+</main>
+
+<footer><div class="container"><div class="grid grid-2"><div><strong>NANTIA</strong><br>Character Artist & Illustrator</div><div><strong>Find me online</strong><div class="socials"><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Tumblr</a></div></div></div><br><small>© 2026 Nantia. Commission website.</small></div></footer>
+
+<script>
 (async function(){
   const container=document.getElementById('publicCatalog');
   const cfg=window.NANTIA_SUPABASE||{};
-  if(!window.supabase || !cfg.url || !cfg.anonKey){container.innerHTML='<p class="muted">Commission catalog is temporarily unavailable.</p>';return;}
+  if(!window.supabase||!cfg.url||!cfg.anonKey){container.innerHTML='<p class="muted">Commission catalog is temporarily unavailable.</p>';return;}
   const client=window.supabase.createClient(cfg.url,cfg.anonKey);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const samples=o=>Array.isArray(o?.options?.samples)?o.options.samples:[];
-  const sampleUrl=x=>x?.url || (x?.path ? client.storage.from('commission-assets').getPublicUrl(x.path).data.publicUrl : '');
+  const getOptions=o=>o.options&&typeof o.options==='object'?o.options:{};
+  const samples=o=>Array.isArray(getOptions(o).samples)?getOptions(o).samples:[];
+  const sampleUrl=x=>x?.url||(x?.path?client.storage.from('commission-assets').getPublicUrl(x.path).data.publicUrl:'');
   const {data:settings}=await client.from('site_settings').select('commissions_open').eq('id',true).single();
   const isOpen=settings?.commissions_open!==false;
   document.querySelectorAll('[data-commission-open]').forEach(el=>{el.querySelectorAll('.open-state').forEach(x=>x.hidden=!isOpen);el.querySelectorAll('.closed-state').forEach(x=>x.hidden=isOpen);el.querySelector('.dot')?.classList.toggle('closed',!isOpen);});
   const {data:offers,error}=await client.from('commission_offers').select('*').eq('active',true).order('sort_order');
   if(error){container.innerHTML='<p class="muted">Unable to load commissions right now.</p>';return;}
   if(!offers?.length){container.innerHTML='<div class="notice">No commissions are currently listed.</div>';return;}
-  container.innerHTML=offers.map(o=>{
-    const opts=o.options&&typeof o.options==='object'?o.options:{};
-    const gallery=samples(o);
-    const price=o.base_price==null?'Estimate':'$'+Number(o.base_price).toFixed(2);
-    const href=isOpen ? `request.html?offer=${encodeURIComponent(o.id)}` : 'closed.html';
-    const button=`Request ${esc(o.name)}`;
-    return `<article class="card offer public-offer"><div class="tag">${esc(o.category)}</div><h2 style="font-size:2rem">${esc(o.name)}</h2>${o.description?`<p class="muted">${esc(o.description)}</p>`:''}<p class="price">${price}</p>${o.category==='Character Illustration'?'<p class="muted">Additional characters: <strong>70% of the selected base price</strong> · Commercial use: <strong>+100%</strong></p>':''}${gallery.length?`<div class="sample-gallery">${gallery.map((x,i)=>{const u=sampleUrl(x);return `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(o.name)} sample ${i+1}" loading="lazy"></a>`}).join('')}</div>`:''}<a class="btn btn-primary" href="${href}">${button}</a></article>`;
+
+  const grouped={};
+  offers.forEach(o=>{const category=o.category||'Other';(grouped[category]??=[]).push(o);});
+  const categoryOrder=['Character Illustration','Custom Illustration','YCH','Chibi','Skeb','Adoptable'];
+  const categories=Object.keys(grouped).sort((a,b)=>{const ai=categoryOrder.indexOf(a),bi=categoryOrder.indexOf(b);return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b);});
+
+  const chips=o=>{
+    const p=getOptions(o).pricing||{}, ch=getOptions(o).characters||{}, refs=getOptions(o).references||{}, bg=getOptions(o).background||{};
+    const out=[];
+    if(p.type==='fixed'&&o.base_price!=null) out.push('Fixed price');
+    if(p.type==='estimate'||o.base_price==null) out.push('Final price after review');
+    if(ch.mode==='fixed'&&Number(ch.fixed)>0) out.push(`${Number(ch.fixed)} character${Number(ch.fixed)===1?'':'s'}`);
+    if(ch.mode==='select') out.push(`${Number(ch.min||1)}–${Number(ch.max||4)} characters`);
+    if(refs.character?.enabled) out.push('Character references required');
+    if(bg.enabled) out.push('Background options');
+    if(p.commercial?.enabled!==false) out.push('Commercial use available');
+    return out.slice(0,4);
+  };
+
+  container.innerHTML=categories.map(category=>{
+    const list=grouped[category];
+    return `<section class="catalog-group"><div class="catalog-group-head"><div><div class="eyebrow">${esc(category)}</div><h2>${esc(category)}</h2></div><span class="catalog-count">${list.length} offer${list.length===1?'':'s'}</span></div><div class="commission-grid">${list.map(o=>{
+      const gallery=samples(o).map(sampleUrl).filter(Boolean);
+      const price=o.base_price==null?'Estimate':'$'+Number(o.base_price).toFixed(2);
+      const href=isOpen?`request.html?offer=${encodeURIComponent(o.id)}`:'closed.html';
+      const tag=category==='Character Illustration'?'Body & character art':(category==='Custom Illustration'?'Custom work':'Available offer');
+      const optionChips=chips(o);
+      const preview=gallery[0];
+      return `<article class="offer-card">
+        <div class="offer-art">${preview?`<img src="${esc(preview)}" alt="${esc(o.name)} sample" loading="lazy">`:`<div class="offer-art-empty"><span>${esc(tag)}</span><strong>${esc(o.name)}</strong></div>`}<div class="offer-tag">${esc(tag)}</div></div>
+        <div class="offer-content">
+          <div class="offer-topline"><span class="category-label">${esc(category)}</span><span class="price">${price}</span></div>
+          <h3>${esc(o.name)}</h3>
+          ${o.description?`<p class="muted offer-description">${esc(o.description)}</p>`:'<p class="muted offer-description">A commission offer with options shown when you start your request.</p>'}
+          ${optionChips.length?`<div class="offer-chips">${optionChips.map(c=>`<span class="pill">${esc(c)}</span>`).join('')}</div>`:''}
+          ${gallery.length>1?`<div class="sample-strip">${gallery.slice(1,4).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(o.name)} sample ${i+2}" loading="lazy"></a>`).join('')}${gallery.length>4?`<span class="sample-more">+${gallery.length-4}</span>`:''}</div>`:''}
+          <a class="btn btn-primary offer-button" href="${href}">${isOpen?'Request this offer':'View offer'}</a>
+        </div>
+      </article>`;
+    }).join('')}</div></section>`;
   }).join('');
 })().catch(()=>{const c=document.getElementById('publicCatalog');if(c)c.innerHTML='<p class="muted">Unable to load commissions right now.</p>';});
 </script>
-<script src="js/script.js"></script></body></html>
+<script src="js/script.js"></script>
+</body></html>
