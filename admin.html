@@ -49,6 +49,30 @@
 <p id="settingsMessage" class="muted"></p>
 </div>
 
+
+<div class="card" style="margin-top:20px">
+  <h3>Payment Profile</h3>
+  <p class="muted">These are the recipient details shown to accepted clients in their private commission portal.</p>
+  <form id="paymentProfileForm" style="margin-top:16px">
+    <label>Destination country</label><input id="paymentCountry" value="Cameroon" readonly>
+    <label>First name</label><input id="paymentFirstName" placeholder="Your Remitly recipient first name">
+    <label>Last name</label><input id="paymentLastName" placeholder="Your Remitly recipient last name">
+    <label>Mobile phone number</label><input id="paymentPhone" inputmode="numeric" placeholder="Without +237">
+    <label>Extra payment note (optional)</label><textarea id="paymentNote" placeholder="Any short note the client should know before paying"></textarea>
+    <button class="btn btn-primary" type="submit">Save Payment Profile</button>
+    <span id="paymentProfileMessage" class="muted" style="margin-left:10px"></span>
+  </form>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <div class="section-head" style="align-items:center">
+    <div><h3>Commission Queue</h3><p class="muted">Paid commissions waiting to be started, plus commissions currently in progress. Position is based on payment confirmation time.</p></div>
+    <button id="refreshQueueBtn" class="btn" type="button">Refresh Queue</button>
+  </div>
+  <div id="queueMessage" class="muted" style="margin-top:10px"></div>
+  <div id="queueList" style="margin-top:20px"></div>
+</div>
+
 <div class="card" style="margin-top:20px">
   <div class="section-head" style="align-items:center">
     <div><h3>Commission Requests</h3><p class="muted">Review incoming requests, references, pricing and status.</p></div>
@@ -364,6 +388,16 @@
     return '<div class="request-detail-grid">'+rows.map(([k,v])=>`<div><strong>${esc(k)}</strong><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(v ?? '—')}</div></div>`).join('')+'</div>';
   }
 
+  async function loadPaymentProfile() {
+    const {data,error}=await client.from('payment_settings').select('*').eq('id',true).maybeSingle();
+    if(error) return;
+    document.getElementById('paymentCountry').value=data?.destination_country||'Cameroon';
+    document.getElementById('paymentFirstName').value=data?.first_name||'';
+    document.getElementById('paymentLastName').value=data?.last_name||'';
+    document.getElementById('paymentPhone').value=data?.mobile_phone||'';
+    document.getElementById('paymentNote').value=data?.payment_note||'';
+  }
+
   async function loadRequests() {
     showRequestsMessage('Loading…');
     const {data,error}=await client.from('commission_requests').select('*').order('created_at',{ascending:false});
@@ -378,6 +412,41 @@
     document.getElementById('newCount').textContent=(data||[]).filter(r=>r.status==='NEW').length;
     document.getElementById('paymentCount').textContent=(data||[]).filter(r=>['ACCEPTED_AWAITING_PAYMENT','PAYMENT_CLAIMED'].includes(r.status)).length;
     document.getElementById('progressCount').textContent=(data||[]).filter(r=>r.status==='IN_PROGRESS').length;
+    renderQueue(data||[]);
+  }
+
+  function renderQueue(requests){
+    const box=document.getElementById('queueList');
+    const msg=document.getElementById('queueMessage');
+    const queue=(requests||[])
+      .filter(r=>['PAID','IN_PROGRESS'].includes(r.status))
+      .sort((a,b)=>new Date(a.paid_at||a.created_at)-new Date(b.paid_at||b.created_at));
+    if(!queue.length){
+      box.innerHTML='<p class="muted">No paid commissions are currently in the queue.</p>';
+      msg.textContent='0 queued commissions.';
+      return;
+    }
+    msg.textContent=`${queue.length} queued commission${queue.length===1?'':'s'}.`;
+    box.innerHTML=queue.map((r,i)=>{
+      const position=i+1;
+      const label=r.status==='IN_PROGRESS'?'IN PROGRESS':'PAID — READY TO START';
+      const paid=r.paid_at?fmtDate(r.paid_at):'Payment date not recorded';
+      return `<div class="catalog-admin-row">
+        <div><strong>#${esc(r.request_number)}</strong> · Queue #${position}<div class="muted">${esc(r.commission_type)} · ${esc(label)} · paid ${esc(paid)} · ${esc(r.instagram_username||'')}</div></div>
+        <div class="catalog-admin-actions"><button type="button" class="btn" data-queue-open="${r.id}">Open</button>${r.status==='PAID'?`<button type="button" class="btn btn-primary" data-queue-start="${r.id}">Start</button>`:''}</div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('[data-queue-open]').forEach(b=>b.addEventListener('click',()=>openRequest((requests||[]).find(r=>r.id===b.dataset.queueOpen))));
+    box.querySelectorAll('[data-queue-start]').forEach(b=>b.addEventListener('click',()=>startQueuedCommission(b.dataset.queueStart,requests)));
+  }
+
+  async function startQueuedCommission(requestId,requests){
+    const r=(requests||[]).find(x=>x.id===requestId);
+    if(!r || r.status!=='PAID') return;
+    if(!confirm(`Start commission #${r.request_number} now?`)) return;
+    const {error}=await client.from('commission_requests').update({status:'IN_PROGRESS'}).eq('id',requestId);
+    if(error){showRequestsMessage(error.message,true);return;}
+    await loadRequests();
   }
 
   async function openRequest(r) {
@@ -443,12 +512,23 @@
     if(r) await openRequest(r);
   });
 
+  document.getElementById('paymentProfileForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const msg=document.getElementById('paymentProfileMessage');
+    const payload={id:true,provider:'Remitly',destination_country:'Cameroon',payment_method:'Mobile Money',mobile_network:'MTN Mobile Money',first_name:document.getElementById('paymentFirstName').value.trim()||null,last_name:document.getElementById('paymentLastName').value.trim()||null,mobile_phone:document.getElementById('paymentPhone').value.trim()||null,payment_note:document.getElementById('paymentNote').value.trim()||null};
+    const {error}=await client.from('payment_settings').upsert(payload,{onConflict:'id'});
+    if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
+    msg.textContent='Payment profile saved.';msg.style.color='';
+  });
+
   document.getElementById('refreshRequestsBtn').addEventListener('click',loadRequests);
+  document.getElementById('refreshQueueBtn').addEventListener('click',loadRequests);
   document.getElementById('closeRequestBtn').addEventListener('click',()=>{
     currentRequestId=null;
     document.getElementById('requestEditor').hidden=true;
   });
 
+  await loadPaymentProfile();
   await loadDashboard();
 })();
 </script>

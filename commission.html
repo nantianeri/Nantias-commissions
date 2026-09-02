@@ -60,6 +60,38 @@
 <h3>Commission progress</h3>
 <p class="muted">This page shows broad progress. I will contact you on Instagram when your commission reaches a stage where personal communication is needed.</p>
 <div id="portalTimeline" class="portal-timeline"></div>
+<div id="queuePositionCard" class="card" hidden style="margin-top:16px;background:rgba(255,255,255,.02);text-align:center">
+  <div class="muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em">Commission queue</div>
+  <div id="queuePositionText" style="font-size:1.35rem;font-weight:800;margin-top:6px">—</div>
+  <div class="muted small" style="margin-top:5px">Your position is based on when payment was confirmed.</div>
+</div>
+</div>
+
+<div id="paymentCard" class="card" hidden style="margin-top:18px">
+<h3>Payment</h3>
+<p id="paymentIntro" class="muted">Your commission has been accepted. Please use the details below carefully.</p>
+<div class="card" style="margin-top:14px;text-align:center;background:rgba(255,255,255,.04)">
+  <div class="muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em">Amount to pay</div>
+  <div id="paymentAmount" style="font-size:2.2rem;font-weight:800;margin-top:6px">$—</div>
+  <div class="muted small" style="margin-top:5px">This is the final price set for your commission.</div>
+</div>
+<div id="paymentDetails" class="portal-grid" style="margin-top:14px"></div>
+<div class="card" style="margin-top:16px;background:rgba(255,255,255,.02)">
+  <strong>How to pay with Remitly</strong>
+  <p class="muted" style="margin-top:8px">Remitly is an app and website used to send money internationally.</p>
+  <ol class="muted" style="margin:10px 0 0 20px">
+    <li>Open Remitly using the button below.</li>
+    <li>Select <strong id="paymentDestination">Cameroon</strong> as the destination country.</li>
+    <li>Choose <strong id="paymentMethod">Mobile Money</strong> and select <strong id="paymentNetwork">MTN Mobile Money</strong>.</li>
+    <li>Enter the recipient details shown above, then review everything before sending.</li>
+  </ol>
+  <a id="remitlyButton" class="btn btn-primary" href="https://www.remitly.com/" target="_blank" rel="noopener" style="margin-top:16px">Open Remitly →</a>
+  <p class="muted small" style="margin-top:10px">Don't have the Remitly app? You can use Remitly in your browser or download the app.</p>
+</div>
+<div id="paymentNoteBox" class="muted" style="white-space:pre-wrap;margin-top:14px"></div>
+<div id="paymentWarning" class="card" style="margin-top:14px;background:rgba(255,255,255,.02)">⚠️ Before sending, double-check: <strong id="warningCountry">Cameroon</strong> · <strong id="warningMethod">Mobile Money</strong> · <strong id="warningNetwork">MTN Mobile Money</strong> · recipient name · recipient phone number.</div>
+<button id="paidButton" class="btn btn-primary" type="button" style="margin-top:16px">I've Paid</button>
+<p id="paymentMessage" class="muted" aria-live="polite"></p>
 </div>
 
 <div id="portalNoticeCard" class="card" hidden style="margin-top:18px">
