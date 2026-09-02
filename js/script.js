@@ -64,7 +64,56 @@ async function initRequestPage(client,settings,offers){
    submit.disabled=true;submit.textContent='Submitting…';
    const {data:requestNumber,error}=await client.rpc('create_commission_request',{p_instagram_username:instagram,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:bg?.value||null,p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'simple'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:additional||null,p_estimated_price:estimated});
    if(error){console.error(error);alert('I could not submit your request. Please try again.');submit.disabled=false;submit.textContent='Submit Commission Request';return}
-   form.hidden=true;const confirmation=document.querySelector('#confirmation');confirmation.hidden=false;confirmation.querySelector('.request-id').textContent='#'+requestNumber;
+
+   // V7.6.2 — upload reference images after the request exists, then securely attach them to that request.
+   const uploadReferenceFiles = async (inputId, fileType) => {
+     const input=document.querySelector(inputId);
+     const files=Array.from(input?.files||[]);
+     const uploaded=[];
+     for(const file of files){
+       if(!file.type || !file.type.startsWith('image/')) throw new Error('Only image files can be uploaded as references.');
+       const safeName=(file.name||'reference').replace(/[^a-zA-Z0-9._-]/g,'_');
+       const unique=(window.crypto?.randomUUID?.()||Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
+       const path=`${requestNumber}/${unique}_${safeName}`;
+       const {error:uploadError}=await client.storage.from('commission-references').upload(path,file,{upsert:false,contentType:file.type});
+       if(uploadError) throw uploadError;
+       uploaded.push({file_type:fileType,storage_path:path,original_name:file.name||safeName});
+     }
+     return uploaded;
+   };
+
+   try{
+     submit.textContent='Uploading references…';
+     const files=[
+       ...(await uploadReferenceFiles('#characterReferences','character_reference')),
+       ...(await uploadReferenceFiles('#additionalReferences','additional_reference'))
+     ];
+     if(files.length){
+       const {error:fileError}=await client.rpc('attach_request_files',{
+         p_request_number:String(requestNumber),
+         p_email:email,
+         p_files:files
+       });
+       if(fileError) throw fileError;
+     }
+   }catch(fileError){
+     console.error('Reference upload failed:',fileError);
+     alert('Your request was submitted, but one or more reference images could not be saved. Please contact me with your request number so I can help attach the references.');
+   }
+
+   form.hidden=true;
+   const confirmation=document.querySelector('#confirmation');
+   confirmation.hidden=false;
+   confirmation.querySelector('.request-id').textContent='#'+requestNumber;
+
+   const existing=confirmation.querySelector('.portal-access');
+   if(!existing){
+     const p=document.createElement('div');
+     p.className='portal-access muted';
+     p.style.marginTop='18px';
+     p.innerHTML='<p><strong>Important: save your request number.</strong></p><p>You can check your commission status anytime by visiting Nantia\'s Commissions and selecting <strong>Check My Commission</strong> from the menu.</p><p>To access your commission, you will need your request number and the email address used for this request.</p><a class="btn btn-primary" style="margin-top:8px;display:inline-block" href="commission.html?request_number='+encodeURIComponent(requestNumber)+'">Check My Commission</a>';
+     confirmation.appendChild(p);
+   }
  });
 }
 
