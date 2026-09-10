@@ -208,7 +208,7 @@
         <option value="IN_PROGRESS">IN PROGRESS</option><option value="COMPLETED">COMPLETED</option>
         <option value="DECLINED">DECLINED</option>
       </select>
-      <label>Final price</label><input id="requestFinalPrice" type="number" min="0" step="0.01" placeholder="Leave blank if not set">
+      <label>Final price <span class="required">*</span></label><input id="requestFinalPrice" type="number" min="0" step="0.01" required placeholder="Enter the final price before accepting">
       <label>Payment instructions</label><textarea id="requestPaymentInstructions" placeholder="How the client should pay"></textarea>
       <label>Decline reason</label><input id="requestDeclineReason" placeholder="Internal reason">
       <label>Decline message</label><textarea id="requestDeclineMessage" placeholder="Message the client will receive later"></textarea>
@@ -1176,7 +1176,12 @@
     e.preventDefault();
     if(!currentRequestId)return;
     const status=document.getElementById('requestStatus').value;
-    const priceValue=document.getElementById('requestFinalPrice').value;
+    const priceValue=document.getElementById('requestFinalPrice').value.trim();
+    const msg=document.getElementById('requestSaveMessage');
+    if(status==='ACCEPTED_AWAITING_PAYMENT' && (priceValue==='' || !Number.isFinite(Number(priceValue)) || Number(priceValue)<0)){
+      msg.textContent='Final price is required before accepting a commission.'; msg.style.color='var(--pink)';
+      document.getElementById('requestFinalPrice').focus(); return;
+    }
     const payload={
       status,
       final_price:priceValue===''?null:Number(priceValue),
@@ -1193,7 +1198,6 @@
     if(status==='COMPLETED') payload.completed_at=now;
     if(status==='PAYMENT_CLAIMED') payload.payment_claimed_at=now;
     const {error}=await client.from('commission_requests').update(payload).eq('id',currentRequestId);
-    const msg=document.getElementById('requestSaveMessage');
     if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
     msg.textContent='Saved.';msg.style.color='';
     await loadRequests();
