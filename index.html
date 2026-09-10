@@ -1,228 +1,126 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nantia's Commissions — Character Artist & Illustrator</title>
-  <meta name="description" content="Nantia's character illustration and custom illustration commissions.">
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title data-content-key="home.title">Nantia — Artist &amp; Illustrator</title>
+<meta content="Nantia's portfolio, illustrations and commission information." data-content-attr="content" data-content-key="home.meta_description" name="description"/>
+<link href="css/style.css?v=9.2" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/v6.js"></script>
 </head>
 <body>
 <header>
-  <div class="container nav">
-    <a class="logo" href="index.html">NANTIA</a>
-    <nav class="navlinks">
-      <a href="portfolio.html">Portfolio</a>
-      <a href="commissions.html">Commissions</a>
-      <a href="how-it-works.html">How It Works</a>
-      <a href="faq.html">FAQ</a>
-      <a href="tos.html">TOS</a>
-      <a href="commission.html">Check My Commission</a>
-    </nav>
-    <a class="btn btn-primary" data-request-link href="commissions.html">Request a Commission</a>
-    <button class="menu" aria-label="Open menu">☰</button>
-  </div>
+<div class="container nav">
+<a class="logo" data-content-key="global.nav.home" href="index.html">HOME</a>
+<nav class="navlinks">
+<a data-content-key="global.nav.portfolio" href="portfolio.html">Portfolio</a>
+<a data-content-key="global.nav.commissions" href="commissions.html">Commissions</a>
+<a data-content-key="global.nav.how" href="how-it-works.html">How It Works</a>
+<a data-content-key="global.nav.faq" href="faq.html">FAQ</a>
+<a data-content-key="global.nav.tos" href="tos.html">TOS</a>
+<a data-content-key="global.nav.check" href="commission.html">Check My Commission</a>
+</nav>
+<a class="btn btn-primary" data-content-key="global.nav.request" data-request-link="" href="commissions.html">Request a Commission</a>
+<button aria-label="Open menu" class="menu">☰</button>
+</div>
 </header>
-
 <main>
-  <!-- HOMEPAGE HERO -->
-  <section class="hero">
-    <div class="container hero-grid">
-      <div>
-        <div class="eyebrow">Nantia's Commissions</div>
-        <h1>Character art made around your idea.</h1>
-
-        <div class="availability" data-commission-open>
-          <span class="dot"></span>
-          <strong class="open-state">Commissions are currently OPEN</strong>
-          <strong class="closed-state" hidden>Commissions are currently CLOSED</strong>
-        </div>
-
-        <p class="lead">
-          Character illustrations, creatures and custom story-driven scenes —
-          created with your ideas at the center.
-        </p>
-
-        <div class="hero-actions">
-          <a class="btn btn-primary" data-request-link href="commissions.html">Request a Commission</a>
-          <a class="btn btn-secondary" href="portfolio.html">View My Work</a>
-        </div>
-
-        <p class="muted small" style="margin-top:18px;">
-          Please do not send a request if you are not willing to pay if your commission is accepted.
-        </p>
-      </div>
-
-      <div class="art-placeholder">
-        YOUR FEATURED ARTWORK
-        <small>Replace this with your strongest illustration.</small>
-      </div>
-    </div>
-  </section>
-
-  <!-- QUICK INTRO -->
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">Welcome</div>
-          <h2>A simple way to commission me.</h2>
-        </div>
-        <p class="muted" style="max-width:520px;">
-          Browse the available offers, choose what fits your budget, and send
-          a detailed request. Every request is personally reviewed before
-          anything is accepted.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- FEATURED COMMISSION OPTIONS -->
-  <section class="section">
-    <div class="container">
-      <div class="eyebrow">Commission Options</div>
-      <h2>Choose what fits your budget.</h2>
-
-      <div class="grid grid-2" style="margin-top:28px;">
-        <article class="card offer">
-          <div class="tag">01 · Character Illustration</div>
-          <h3>Character Illustration</h3>
-          <p class="muted">
-            Bust Up, Half Body or Full Body. Character illustrations come with
-            either a transparent/no background or a simple background.
-          </p>
-          <div class="pill-row">
-            <span class="pill" data-home-format="bust">Bust Up · Loading…</span>
-            <span class="pill" data-home-format="half">Half Body · Loading…</span>
-            <span class="pill" data-home-format="full">Full Body · Loading…</span>
-          </div>
-          <p class="muted">Extra characters are 70% of the selected base price.</p>
-          <a class="btn btn-primary" data-request-link href="commissions.html#formats">Explore Character Art</a>
-        </article>
-
-        <article class="card offer">
-          <div class="tag">02 · Custom Illustration</div>
-          <h3>Custom Illustration</h3>
-          <p class="muted">
-            For detailed scenes, environments and more complex compositions.
-            The calculator provides an estimate, while the final price is
-            determined after I review the request.
-          </p>
-          <a class="btn btn-purple" data-request-link href="request.html?type=custom">Explore Custom Illustration</a>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ARTIST / BOUNDARIES -->
-  <section class="section">
-    <div class="container">
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="eyebrow">What I Draw</div>
-          <h2 style="font-size:2rem;">Things I'm happy to illustrate.</h2>
-          <p class="muted">
-            Characters, original characters, fan art, creatures, character +
-            creature concepts, expressive poses, fantasy subjects and
-            story-driven illustrations.
-          </p>
-          <a href="commissions.html" class="accent-pink">See the full list →</a>
-        </div>
-
-        <div class="card">
-          <div class="eyebrow">What I Don't Draw</div>
-          <h2 style="font-size:2rem;">Know before you request.</h2>
-          <p class="muted">
-            I reserve the right to decline requests outside my skills,
-            boundaries, or available schedule.
-          </p>
-          <a href="commissions.html" class="accent-pink">See the full list →</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- HOW IT WORKS PREVIEW -->
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">The Process</div>
-          <h2>Request → Review → Pay → Instagram → Art.</h2>
-        </div>
-        <a class="btn btn-secondary" href="how-it-works.html">How It Works</a>
-      </div>
-
-      <div class="grid grid-3" style="margin-top:28px;">
-        <div class="card"><div class="tag">01</div><h3>Request</h3><p class="muted">Choose an offer and tell me what you'd like.</p></div>
-        <div class="card"><div class="tag">02</div><h3>Review & Accept</h3><p class="muted">I review every request and set the final price.</p></div>
-        <div class="card"><div class="tag">03</div><h3>Payment & Instagram</h3><p class="muted">After payment is verified, we continue through Instagram.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SOCIALS -->
-  <section class="section">
-    <div class="container">
-      <div class="card">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">Follow My Work</div>
-            <h2>Keep up with my art.</h2>
-            <p class="muted">
-              Follow my socials for new artwork and updates about when commissions
-              open again if the slots become full.
-            </p>
-          </div>
-          <div class="socials">
-            <a href="#">Instagram</a>
-            <a href="#">TikTok</a>
-            <a href="#">Tumblr</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FINAL CTA -->
-  <section class="cta-band">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">Interested?</div>
-          <h2>Let's create something.</h2>
-          <p class="muted">
-            Check the available commission options and send your request when
-            commissions are open.
-          </p>
-        </div>
-        <a class="btn btn-primary" data-request-link href="commissions.html">Commission Me</a>
-      </div>
-    </div>
-  </section>
+<section class="hero">
+<div class="container">
+<div class="hero-showcase reveal">
+<div aria-label="Featured artwork" class="featured-carousel" data-featured-carousel="">
+<div class="featured-track">
+<a aria-label="View featured artwork 1" class="featured-slide is-active" href="portfolio.html">
+<img alt="Featured artwork 1" data-content-attr="alt" data-content-key="home.featured_1_alt" loading="eager" onerror="this.style.display='none'" src="images/featured-1.jpg"/>
+<div class="featured-fallback"><strong>YOUR FEATURED ARTWORK 1</strong><small>Add your image as <code>images/featured-1.jpg</code></small></div>
+</a>
+<a aria-label="View featured artwork 2" class="featured-slide" href="portfolio.html">
+<img alt="Featured artwork 2" data-content-attr="alt" data-content-key="home.featured_2_alt" loading="lazy" onerror="this.style.display='none'" src="images/featured-2.jpg"/>
+<div class="featured-fallback"><strong>YOUR FEATURED ARTWORK 2</strong><small>Add your image as <code>images/featured-2.jpg</code></small></div>
+</a>
+<a aria-label="View featured artwork 3" class="featured-slide" href="portfolio.html">
+<img alt="Featured artwork 3" data-content-attr="alt" data-content-key="home.featured_3_alt" loading="lazy" onerror="this.style.display='none'" src="images/featured-3.jpg"/>
+<div class="featured-fallback"><strong>YOUR FEATURED ARTWORK 3</strong><small>Add your image as <code>images/featured-3.jpg</code></small></div>
+</a>
+</div>
+<button aria-label="Previous featured artwork" class="featured-arrow featured-prev" type="button">‹</button>
+<button aria-label="Next featured artwork" class="featured-arrow featured-next" type="button">›</button>
+<div aria-label="Featured artwork navigation" class="featured-dots">
+<button aria-label="Show featured artwork 1" class="featured-dot is-active" type="button"></button>
+<button aria-label="Show featured artwork 2" class="featured-dot" type="button"></button>
+<button aria-label="Show featured artwork 3" class="featured-dot" type="button"></button>
+</div>
+</div>
+</div>
+<div class="hero-intro reveal">
+<div class="hero-kicker" data-content-key="home.kicker">Nantia · Artist &amp; Illustrator</div>
+<h1><span data-content-key="home.hero_title">Welcome to</span> <br/><span class="hero-title-accent" data-content-key="home.hero_title_accent">Nantia's space.</span></h1>
+<p class="lead" data-content-key="home.hero_lead">Artwork, commissions and more.</p>
+<div class="availability" data-commission-open="">
+<span class="dot"></span>
+<strong class="open-state" data-content-key="home.open_text">Commissions are currently OPEN</strong>
+<strong class="closed-state" data-content-key="home.closed_text" hidden="">Commissions are currently CLOSED</strong>
+</div>
+<div class="hero-actions">
+<a class="btn btn-primary" data-content-key="home.view_work" href="portfolio.html">View More of My Work</a>
+<a class="btn btn-secondary" data-content-key="home.commissions_button" data-request-link="" href="commissions.html">Commissions</a>
+</div>
+</div>
+</div>
+</section>
+<section class="section reveal">
+<div class="container">
+<div class="section-head">
+<div><div class="eyebrow" data-content-key="home.commissions_eyebrow">Commissions</div><h2 data-content-key="home.commissions_heading">Simple, seamless and secure.</h2></div>
+</div>
+<div class="grid grid-2">
+<article class="card offer"><div class="tag" data-content-key="home.character_tag">Character Illustration</div><h3 data-content-key="home.character_title">Character Art</h3><p class="muted" data-content-key="home.character_description">Bust Up, Half Body and Full Body options.</p><div class="pill-row" style="margin-top:18px"><span class="pill" data-home-format="bust">Bust Up · Loading…</span><span class="pill" data-home-format="half">Half Body · Loading…</span><span class="pill" data-home-format="full">Full Body · Loading…</span></div><a class="accent-pink" data-content-key="home.character_details" data-request-link="" href="commissions.html" style="display:inline-block;margin-top:18px">View details →</a></article>
+<article class="card offer"><div class="tag" data-content-key="home.custom_tag">Custom Illustration</div><h3 data-content-key="home.custom_title">Custom Work</h3><p class="muted" data-content-key="home.custom_description">For scenes, environments and more complex compositions.</p><a class="accent-pink" data-content-key="home.custom_details" data-request-link="" href="request.html?type=custom" style="display:inline-block;margin-top:18px">View details →</a></article>
+</div>
+</div>
+</section>
+<section class="section reveal">
+<div class="container">
+<div class="grid grid-2">
+<div class="card"><div class="eyebrow" data-content-key="home.what_eyebrow">What I Draw</div><h2 data-content-key="home.what_title" style="font-size:2rem">What I work on.</h2><p class="muted" data-content-key="home.what_text">Characters, original characters, fan art, creatures, fantasy subjects, expressive poses and illustrated scenes.</p><a class="accent-pink" data-content-key="home.what_link" href="commissions.html">Full commission info →</a></div>
+<div class="card"><div class="eyebrow" data-content-key="home.before_eyebrow">Before You Request</div><h2 data-content-key="home.before_title" style="font-size:2rem">A few things to know.</h2><p class="muted" data-content-key="home.before_text">Every request is reviewed before acceptance. Pricing, deadlines and scope are confirmed before payment.</p><a class="accent-pink" data-content-key="home.before_link" href="how-it-works.html">How it works →</a></div>
+</div>
+</div>
+</section>
+<section class="section reveal">
+<div class="container">
+<div class="social-card card">
+<div><div class="eyebrow" data-content-key="home.social_eyebrow">Follow My Art</div><h2 data-content-key="home.social_heading">Find me online.</h2></div>
+<div class="social-icons">
+<a aria-label="Instagram" class="social-icon instagram" data-content-href-key="global.social.instagram_url" href="#"><span class="social-mark instagram-mark"><svg aria-hidden="true" viewbox="0 0 24 24"><rect fill="none" height="18" rx="5" stroke="currentColor" stroke-width="2" width="18" x="3" y="3"></rect><circle cx="12" cy="12" fill="none" r="4.2" stroke="currentColor" stroke-width="2"></circle><circle cx="17.5" cy="6.7" fill="currentColor" r="1.2"></circle></svg></span><span data-content-href-key="global.social.instagram_url" data-content-key="global.social.instagram_label">Instagram</span></a>
+<a aria-label="TikTok" class="social-icon tiktok" data-content-href-key="global.social.tiktok_url" href="#"><span class="social-mark tiktok-mark"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14.5 4c.45 2.23 1.78 3.64 3.7 4.08v2.9c-1.42-.12-2.65-.56-3.7-1.32v5.37a5.83 5.83 0 1 1-5.01-5.77v2.98a2.92 2.92 0 1 0 2.02 2.79V4h2.99Z" fill="currentColor"></path></svg></span><span data-content-href-key="global.social.tiktok_url" data-content-key="global.social.tiktok_label">TikTok</span></a>
+<a aria-label="Tumblr" class="social-icon tumblr" data-content-href-key="global.social.tumblr_url" href="#"><span class="social-mark">t</span><span data-content-href-key="global.social.tumblr_url" data-content-key="global.social.tumblr_label">Tumblr</span></a>
+</div>
+</div>
+</div>
+</section>
+<section class="cta-band reveal"><div class="container"><div class="section-head" style="align-items:center;margin-bottom:0"><div><div class="eyebrow" data-content-key="home.cta_eyebrow">Commissions</div><h2 data-content-key="home.cta_heading">Start a commission.</h2></div><a class="btn btn-primary" data-content-key="home.cta_button" data-request-link="" href="commissions.html">Start a Request</a></div></div></section>
 </main>
-
 <footer>
-  <div class="container">
-    <div class="grid grid-2">
-      <div><strong>NANTIA</strong><br>Character Artist & Illustrator</div>
-      <div>
-        <strong>Find me online</strong>
-        <div class="socials">
-          <a href="#">Instagram</a>
-          <a href="#">TikTok</a>
-          <a href="#">Tumblr</a>
-        </div>
-      </div>
-    </div>
-    <br>
-    <small>© 2026 Nantia. Commission website.</small>
-  </div>
+<div class="container">
+<div class="grid grid-2">
+<div><strong data-content-key="global.brand">NANTIA</strong><br/><span data-content-key="global.role">Character Artist &amp; Illustrator</span></div>
+<div>
+<strong>Find me online</strong>
+<div class="socials">
+<a data-content-href-key="global.social.instagram_url" data-content-key="global.social.instagram_label" href="#">Instagram</a>
+<a data-content-href-key="global.social.tiktok_url" data-content-key="global.social.tiktok_label" href="#">TikTok</a>
+<a data-content-href-key="global.social.tumblr_url" data-content-key="global.social.tumblr_label" href="#">Tumblr</a>
+</div>
+</div>
+</div>
+<br/>
+<small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small>
+</div>
 </footer>
-
-<script src="js/script.js?v=6.9"></script>
+<script src="js/content.js?v=8.0"></script><script src="js/portfolio.js?v=9.2"></script><script src="js/script.js?v=6.9"></script>
 </body>
 </html>

@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin Dashboard — Nantia's Commissions</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=11.1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/v6.js"></script>
 </head>
 <body>
 <header><div class="container nav">
-<a class="logo" href="index.html">NANTIA</a>
+<a class="logo" href="index.html">HOME</a>
 <nav class="navlinks">
 <a href="portfolio.html">Portfolio</a><a href="commissions.html">Commissions</a>
 <a href="how-it-works.html">How It Works</a><a href="faq.html">FAQ</a><a href="tos.html">TOS</a>
@@ -38,10 +38,13 @@
 <div><h1>Commission dashboard.</h1><p class="lead">Real authentication and persistent database foundation.</p></div>
 <button id="logoutBtn" class="btn">Log Out</button>
 </div>
-<div class="grid grid-3" style="margin-top:35px">
+<div class="grid grid-3 admin-stats" style="margin-top:35px">
 <div class="card"><div class="accent-pink">NEW REQUESTS</div><h2 id="newCount">0</h2></div>
 <div class="card"><div class="accent-cream">AWAITING PAYMENT</div><h2 id="paymentCount">0</h2></div>
+<div class="card"><div class="accent-blue">PAYMENT CLAIMED</div><h2 id="claimedCount">0</h2></div>
+<div class="card"><div class="accent-blue">PAID / QUEUED</div><h2 id="paidCount">0</h2></div>
 <div class="card"><div class="accent-blue">IN PROGRESS</div><h2 id="progressCount">0</h2></div>
+<div class="card"><div class="accent-green">COMPLETED</div><h2 id="completedCount">0</h2></div>
 </div>
 <div class="card" style="margin-top:20px">
 <h3>Commission Availability</h3>
@@ -49,6 +52,76 @@
 <p id="settingsMessage" class="muted"></p>
 </div>
 
+
+<div class="card" style="margin-top:20px" id="siteContentCard">
+  <div class="section-head" style="align-items:center">
+    <div><h3>Website Content</h3><p class="muted">Edit each field and use its own Save button. Saving one field does not wait for or update the other fields.</p></div>
+  </div>
+  <div id="siteContentMessage" class="muted" style="margin-top:10px"></div>
+  <div id="siteContentEditor" style="margin-top:20px"></div>
+</div>
+
+<div class="card" style="margin-top:20px" id="portfolioManagementCard">
+  <details id="portfolioManagementDetails">
+    <summary class="admin-collapsible-summary">
+      <div>
+        <h3>Portfolio &amp; Featured Artwork</h3>
+        <p class="muted">Upload multiple artworks at once, then control which pieces are visible on the portfolio and which up to 3 appear in the homepage featured section.</p>
+      </div>
+      <span class="collapsible-chevron" aria-hidden="true">⌄</span>
+    </summary>
+
+    <div class="section-head" style="align-items:center;margin-top:18px">
+      <div><strong>Manage artwork</strong><p class="muted small">Add, edit, show, hide, feature, unfeature, or delete portfolio pieces.</p></div>
+      <button id="addPortfolioBtn" class="btn" type="button">+ Add One Artwork</button>
+    </div>
+
+  <div class="portfolio-bulk-upload card">
+    <div class="portfolio-bulk-head">
+      <div><strong>Bulk upload</strong><p class="muted small">Select as many image files as you want. Each image becomes its own portfolio artwork.</p></div>
+    </div>
+    <input id="portfolioBulkImages" type="file" accept="image/*" multiple>
+    <div class="portfolio-bulk-actions">
+      <button id="uploadPortfolioBulkBtn" class="btn btn-primary" type="button">Upload Selected Images</button>
+      <span id="portfolioBulkStatus" class="muted small"></span>
+    </div>
+    <p class="muted small">New bulk uploads start as <strong>Visible</strong> and <strong>Not Featured</strong>. You can change either setting below.</p>
+  </div>
+
+  <div id="portfolioMessage" class="muted" style="margin-top:10px"></div>
+
+  <div id="portfolioBulkActions" class="portfolio-bulk-tools" hidden>
+    <label class="check portfolio-select-all"><input id="portfolioSelectAll" type="checkbox"><span>Select all</span></label>
+    <span id="portfolioSelectedCount" class="muted small">0 selected</span>
+    <button type="button" class="btn" data-bulk-action="show">Make Visible</button>
+    <button type="button" class="btn" data-bulk-action="hide">Hide</button>
+    <button type="button" class="btn" data-bulk-action="feature">Feature Selected</button>
+    <button type="button" class="btn" data-bulk-action="unfeature">Unfeature Selected</button>
+    <button type="button" class="btn danger" data-bulk-action="delete">Delete Selected</button>
+  </div>
+
+  <div id="portfolioList" style="margin-top:20px"></div>
+  <div id="portfolioEditor" class="card" hidden style="margin-top:20px;background:rgba(255,255,255,.02)">
+    <h3 id="portfolioEditorTitle">Add Artwork</h3>
+    <form id="portfolioForm">
+      <label>Artwork image *</label>
+      <input id="portfolioImage" type="file" accept="image/*">
+      <div id="portfolioCurrentImage" class="muted small" style="margin-top:7px"></div>
+      <label>Title <span class="muted small">(optional)</span></label><input id="portfolioTitle" placeholder="e.g. Character illustration">
+      <label>Category <span class="muted small">(optional)</span></label><input id="portfolioCategory" placeholder="e.g. Character Art">
+      <label>Alt text <span class="muted small">(optional)</span></label><input id="portfolioAlt" placeholder="Short description of the artwork">
+      <label>Sort order</label><input id="portfolioSort" type="number" step="1" value="0">
+      <label class="check"><input id="portfolioActive" type="checkbox" checked><span>Visible on public portfolio</span></label>
+      <label class="check"><input id="portfolioFeatured" type="checkbox"><span>Show on homepage featured artwork</span></label>
+      <p class="muted small">The homepage shows the first 3 visible featured pieces by sort order.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
+        <button class="btn btn-primary" type="submit">Save Artwork</button>
+        <button id="cancelPortfolioBtn" class="btn" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+  </details>
+</div>
 
 <div class="card" style="margin-top:20px">
   <h3>Payment Profile</h3>
@@ -79,20 +152,59 @@
     <button id="refreshRequestsBtn" class="btn" type="button">Refresh</button>
   </div>
   <div id="requestsMessage" class="muted" style="margin-top:10px"></div>
+  <div class="request-filters" style="margin-top:16px">
+    <input id="requestSearch" placeholder="Search request number, contact, email or commission…" autocomplete="off">
+    <select id="requestStatusFilter">
+      <option value="ALL">All statuses</option><option value="NEW">NEW</option><option value="REVIEWING">REVIEWING</option>
+      <option value="ACCEPTED_AWAITING_PAYMENT">ACCEPTED — AWAITING PAYMENT</option><option value="PAYMENT_CLAIMED">PAYMENT CLAIMED</option><option value="PAYMENT_REJECTED">PAYMENT CLAIM REJECTED</option>
+      <option value="PAID">PAID</option><option value="IN_PROGRESS">IN PROGRESS</option><option value="COMPLETED">COMPLETED</option><option value="DECLINED">DECLINED</option>
+    </select>
+  </div>
   <div id="requestsList" style="margin-top:20px"></div>
   <div id="requestEditor" class="card" hidden style="margin-top:20px;background:rgba(255,255,255,.02)">
     <div class="section-head"><div><h3 id="requestEditorTitle">Request</h3><p id="requestMeta" class="muted"></p></div><button id="closeRequestBtn" class="btn" type="button">Close</button></div>
     <div id="requestDetails" style="margin-top:20px"></div>
+    <div class="request-action-bar" style="margin-top:20px">
+      <span id="requestQuickStatus" class="status-pill"></span>
+      <button id="requestMarkInProgressBtn" class="btn btn-primary" type="button" hidden>Start Commission</button>
+      <button id="requestMarkCompletedBtn" class="btn" type="button" hidden>Mark Completed</button>
+    </div>
     <div style="margin-top:22px">
       <h4>Reference files</h4>
       <div id="requestFiles" class="sample-admin-grid" style="margin-top:12px"></div>
+    </div>
+    <div class="card" style="margin-top:20px;background:rgba(217,37,63,.045);border:1px solid rgba(217,37,63,.12)">
+      <h4>Final artwork delivery</h4>
+      <p class="muted" style="margin:6px 0 12px">The client sees a small compressed preview here. The original artwork stays on your Google Drive and is opened through the download button.</p>
+      <div id="finalDeliveryStatus" class="muted" style="margin-bottom:12px">No final artwork delivery set yet.</div>
+      <input id="finalArtworkInput" type="file" accept="image/*" hidden>
+      <label>Google Drive link for the original artwork *</label>
+      <input id="finalDriveUrl" type="url" placeholder="https://drive.google.com/..." autocomplete="off">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <button id="uploadFinalArtworkBtn" class="btn btn-primary" type="button">Upload Preview &amp; Save Link</button>
+        <button id="removeFinalArtworkBtn" class="btn danger" type="button" hidden>Remove Final Artwork</button>
+      </div>
+      <p class="muted small" style="margin:10px 0 0">The preview is automatically compressed before upload. Only the preview uses website storage; the original file remains on Google Drive.</p>
+      <span id="finalDeliveryMessage" class="muted" style="display:block;margin-top:10px"></span>
+    </div>
+    <div class="card" style="margin-top:20px;background:rgba(49,95,159,.045);border:1px solid rgba(49,95,159,.11)">
+      <h4>Client updates</h4>
+      <p class="muted" style="margin:6px 0 12px">Post a short update that the client will see in their private commission portal.</p>
+      <form id="commissionUpdateForm">
+        <label>Update title</label><input id="commissionUpdateTitle" placeholder="e.g. Sketch started">
+        <label>Type</label><select id="commissionUpdateType"><option value="PROGRESS">Progress</option><option value="GENERAL">General</option><option value="ACTION_REQUIRED">Action required</option></select>
+        <label>Message *</label><textarea id="commissionUpdateMessage" rows="4" required placeholder="Write the update for the client..."></textarea>
+        <button class="btn btn-primary" type="submit">Post Update</button>
+        <span id="commissionUpdateMessageStatus" class="muted" style="margin-left:10px"></span>
+      </form>
+      <div id="adminUpdateList" style="margin-top:16px"></div>
     </div>
     <form id="requestUpdateForm" style="margin-top:24px">
       <label>Status</label>
       <select id="requestStatus">
         <option value="NEW">NEW</option><option value="REVIEWING">REVIEWING</option>
         <option value="ACCEPTED_AWAITING_PAYMENT">ACCEPTED — AWAITING PAYMENT</option>
-        <option value="PAYMENT_CLAIMED">PAYMENT CLAIMED</option><option value="PAID">PAID</option>
+        <option value="PAYMENT_CLAIMED">PAYMENT CLAIMED</option><option value="PAYMENT_REJECTED">PAYMENT CLAIM REJECTED</option><option value="PAID">PAID</option>
         <option value="IN_PROGRESS">IN PROGRESS</option><option value="COMPLETED">COMPLETED</option>
         <option value="DECLINED">DECLINED</option>
       </select>
@@ -100,10 +212,29 @@
       <label>Payment instructions</label><textarea id="requestPaymentInstructions" placeholder="How the client should pay"></textarea>
       <label>Decline reason</label><input id="requestDeclineReason" placeholder="Internal reason">
       <label>Decline message</label><textarea id="requestDeclineMessage" placeholder="Message the client will receive later"></textarea>
+      <label>Payment rejection message</label><textarea id="requestPaymentRejectionMessage" placeholder="Message the client will receive when a payment claim is rejected"></textarea>
+      <label>Private admin notes</label><textarea id="requestAdminNotes" rows="5" placeholder="Only you/admins can see these notes."></textarea>
       <button class="btn btn-primary" type="submit">Save Request</button>
       <span id="requestSaveMessage" class="muted" style="margin-left:10px"></span>
     </form>
   </div>
+</div>
+
+<div class="card" style="margin-top:20px" id="commissionArchiveCard">
+  <details id="commissionArchiveDetails">
+    <summary class="admin-collapsible-summary">
+      <div>
+        <h3>Commission History &amp; Archive</h3>
+        <p class="muted">Completed commissions are kept here for your records. Nothing is deleted from the database.</p>
+      </div>
+      <span class="collapsible-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="request-filters" style="margin-top:18px">
+      <input id="archiveSearch" placeholder="Search request number, contact, email or commission…" autocomplete="off">
+    </div>
+    <div id="archiveMessage" class="muted" style="margin-top:10px"></div>
+    <div id="archiveList" style="margin-top:20px"></div>
+  </details>
 </div>
 
 <div class="card" style="margin-top:20px">
@@ -123,11 +254,10 @@
     <label>Sort order</label><input id="offerSort" type="number" step="1" value="0">
     <label class="check"><input id="offerActive" type="checkbox" checked><span>Visible on public site</span></label>
     <div style="margin-top:18px">
-      <strong>Sample images <span class="muted">(optional)</span></strong>
-      <p class="muted" style="margin:6px 0 12px">If you add no samples, nothing will appear on the public commission card. You can add multiple images.</p>
-      <div id="sampleList" class="sample-admin-grid"></div>
-      <button id="addSampleBtn" class="btn" type="button">+ Add Sample(s)</button>
-      <input id="sampleInput" type="file" accept="image/*" multiple hidden>
+      <strong>Commission sample images</strong>
+      <p class="muted" style="margin:6px 0 12px">Add as many sample images as you want for this offer. Visitors will see them as a carousel on the commission page.</p>
+      <div id="sampleList" class="sample-admin-slots"></div>
+      <input id="sampleInput" type="file" accept="image/*" hidden>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
       <button class="btn btn-primary" type="submit">Save Commission</button>
@@ -135,6 +265,40 @@
     </div>
   </form>
 </div>
+
+<div class="card" style="margin-top:20px" id="discountManagerCard">
+  <div class="section-head" style="align-items:center">
+    <div><h3>Discount Manager</h3><p class="muted">Create temporary sales without changing your normal catalog prices.</p></div>
+    <button id="addDiscountBtn" class="btn btn-primary" type="button">+ Add Discount</button>
+  </div>
+  <div id="discountMessage" class="muted" style="margin-top:10px"></div>
+  <div id="discountList" style="margin-top:20px"></div>
+  <div id="discountEditor" class="card" hidden style="margin-top:20px;background:rgba(255,255,255,.02)">
+    <h3 id="discountEditorTitle">Add Discount</h3>
+    <form id="discountForm">
+      <div class="card" style="padding:14px;margin-bottom:16px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.22)">
+        <strong>Applies to all active offers</strong>
+        <p class="muted" style="margin:5px 0 0">One discount automatically applies to every commission offer with a fixed catalog price. Your original prices stay unchanged.</p>
+      </div>
+      <label>Discount name *</label>
+      <input id="discountName" required placeholder="e.g. Summer Sale">
+      <label>Discount type *</label>
+      <select id="discountType"><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select>
+      <label>Discount value *</label>
+      <input id="discountValue" type="number" min="0.01" step="0.01" required placeholder="20">
+      <p id="discountValueHint" class="muted">20 means 20% off.</p>
+      <div class="request-filters" style="margin-top:12px">
+        <div><label>Starts</label><input id="discountStarts" type="datetime-local"></div>
+        <div><label>Ends</label><input id="discountEnds" type="datetime-local"></div>
+      </div>
+      <label class="check" style="margin-top:14px"><input id="discountActive" type="checkbox" checked><span>Active</span></label>
+      <p class="muted" style="margin-top:8px">Leave a date blank for no start/end limit. Discounts never change the original catalog price.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
+        <button class="btn btn-primary" type="submit">Save Discount</button>
+        <button id="cancelDiscountBtn" class="btn" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
 </div>
 </div>
 </div></section>
@@ -177,13 +341,367 @@
 
     await loadCatalog();
     await loadRequests();
+    await loadSiteContent();
+    await loadPortfolioAdmin();
   }
+
+  let siteContentRows = [];
+
+  function showSiteContentMessage(text,error=false){
+    const el=document.getElementById('siteContentMessage');
+    if(!el)return; el.textContent=text||''; el.style.color=error?'var(--pink)':'';
+  }
+
+  function renderSiteContent(){
+    const box=document.getElementById('siteContentEditor'); if(!box)return;
+    const groups={};
+    siteContentRows.forEach(row=>{(groups[row.page] ||= []).push(row)});
+    box.innerHTML=Object.entries(groups).map(([page,rows])=>`<details class="content-group" style="margin-top:14px;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--surface-2)">
+      <summary style="cursor:pointer;font-weight:800">${esc(page)} <span class="muted small">(${rows.length} fields)</span></summary>
+      <div class="content-fields" style="display:grid;gap:14px;margin-top:16px">
+        ${rows.sort((a,b)=>a.sort_order-b.sort_order).map(row=>{
+          const id='content-'+esc(row.key).replace(/[^a-zA-Z0-9_-]/g,'-');
+          return `<div class="content-field" style="display:grid;gap:8px">
+            <label for="${id}">${esc(row.label)}</label>
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <div style="flex:1;min-width:0">${row.field_type==='textarea'
+                ? `<textarea id="${id}" data-content-admin-key="${esc(row.key)}" rows="4">${esc(row.value)}</textarea>`
+                : `<input id="${id}" data-content-admin-key="${esc(row.key)}" type="${row.field_type==='url'?'url':'text'}" value="${esc(row.value)}" placeholder="${row.field_type==='url'?'https://…':''}">`
+              }</div>
+              <button class="btn btn-primary content-save-btn" type="button" data-content-save-key="${esc(row.key)}">Save</button>
+            </div>
+            <span class="muted small content-save-status" data-content-save-status="${esc(row.key)}" aria-live="polite"></span>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`).join('');
+  }
+
+  async function loadSiteContent(){
+    showSiteContentMessage('Loading website content…');
+    const {data,error}=await client.from('site_content').select('*').order('page').order('sort_order');
+    if(error){showSiteContentMessage(error.message,true);return;}
+    siteContentRows=data||[]; renderSiteContent(); showSiteContentMessage(`${siteContentRows.length} editable fields loaded.`);
+  }
+
+  async function saveSingleSiteContent(key, button){
+    const input=document.querySelector(`[data-content-admin-key="${CSS.escape(key)}"]`);
+    const status=document.querySelector(`[data-content-save-status="${CSS.escape(key)}"]`);
+    if(!input || !button)return;
+
+    const originalText=button.textContent;
+    button.disabled=true;
+    button.textContent='Saving…';
+    if(status){status.textContent='Saving…'; status.style.color='';}
+
+    const {error}=await client.from('site_content').update({value:input.value}).eq('key',key);
+
+    if(error){
+      if(status){status.textContent=`Could not save: ${error.message}`; status.style.color='var(--pink)';}
+      button.disabled=false;
+      button.textContent=originalText;
+      return;
+    }
+
+    siteContentRows=siteContentRows.map(row=>row.key===key ? {...row,value:input.value} : row);
+    if(status){status.textContent='Saved.'; status.style.color='';}
+    button.disabled=false;
+    button.textContent='Saved';
+    setTimeout(()=>{ if(button.isConnected) button.textContent=originalText; }, 1200);
+  }
+
+  // V9.2 Portfolio & Featured Artwork Management
+  let currentPortfolioId = null;
+  let currentPortfolioImage = null;
+  let portfolioAdminItems = [];
+
+  function showPortfolioMessage(text,error=false){
+    const el=document.getElementById('portfolioMessage');
+    if(!el)return;
+    el.textContent=text||'';
+    el.style.color=error?'var(--pink)':'';
+  }
+
+  function showPortfolioBulkStatus(text,error=false){
+    const el=document.getElementById('portfolioBulkStatus');
+    if(!el)return;
+    el.textContent=text||'';
+    el.style.color=error?'var(--pink)':'';
+  }
+
+  function portfolioImageUrl(item){ return item?.image_url || ''; }
+
+  function openPortfolioEditor(item=null){
+    currentPortfolioId=item?.id||null;
+    currentPortfolioImage=item ? {...item} : null;
+    document.getElementById('portfolioEditorTitle').textContent=item ? `Edit ${item.title||'Artwork'}` : 'Add Artwork';
+    document.getElementById('portfolioImage').value='';
+    document.getElementById('portfolioCurrentImage').innerHTML=item?.image_url ? `Current image: <a href="${esc(item.image_url)}" target="_blank" rel="noopener">Open artwork ↗</a>` : 'Choose an image to upload.';
+    document.getElementById('portfolioTitle').value=item?.title||'';
+    document.getElementById('portfolioCategory').value=item?.category||'';
+    document.getElementById('portfolioAlt').value=item?.alt_text||'';
+    document.getElementById('portfolioSort').value=item?.sort_order??0;
+    document.getElementById('portfolioActive').checked=item ? !!item.active : true;
+    document.getElementById('portfolioFeatured').checked=item ? !!item.featured : false;
+    document.getElementById('portfolioEditor').hidden=false;
+    document.getElementById('portfolioEditor').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function closePortfolioEditor(){
+    document.getElementById('portfolioEditor').hidden=true;
+    currentPortfolioId=null;
+    currentPortfolioImage=null;
+  }
+
+  function selectedPortfolioIds(){
+    return [...document.querySelectorAll('[data-portfolio-select]:checked')].map(el=>el.value);
+  }
+
+  function updatePortfolioSelectionUi(){
+    const boxes=[...document.querySelectorAll('[data-portfolio-select]')];
+    const selected=boxes.filter(b=>b.checked).length;
+    const tools=document.getElementById('portfolioBulkActions');
+    const count=document.getElementById('portfolioSelectedCount');
+    const all=document.getElementById('portfolioSelectAll');
+    if(tools)tools.hidden=boxes.length===0;
+    if(count)count.textContent=`${selected} selected`;
+    if(all){
+      all.checked=boxes.length>0 && selected===boxes.length;
+      all.indeterminate=selected>0 && selected<boxes.length;
+    }
+    document.querySelectorAll('[data-bulk-action]').forEach(btn=>btn.disabled=selected===0);
+  }
+
+  function renderPortfolioAdmin(items){
+    portfolioAdminItems=items||[];
+    const list=document.getElementById('portfolioList');
+    if(!list)return;
+    list.innerHTML=portfolioAdminItems.map((item,i)=>{
+      const label=item.title||item.category||`Artwork ${i+1}`;
+      const alt=item.alt_text||item.title||item.category||'Portfolio artwork';
+      return `<div class="portfolio-admin-row">
+        <label class="portfolio-row-select" title="Select artwork"><input type="checkbox" value="${esc(item.id)}" data-portfolio-select><span class="sr-only">Select ${esc(label)}</span></label>
+        <div class="portfolio-admin-preview"><img src="${esc(item.image_url)}" alt="${esc(alt)}" loading="lazy"></div>
+        <div class="portfolio-admin-info"><strong>${esc(label)}</strong><div class="muted small">${item.title||item.category?esc([item.title,item.category].filter(Boolean).join(' · '))+' · ':''}Order ${Number(item.sort_order)||0}</div>
+          <div class="portfolio-statuses">
+            <label class="check portfolio-toggle"><input type="checkbox" data-visibility-portfolio="${esc(item.id)}" ${item.active?'checked':''}><span>Visible on public portfolio</span></label>
+            <label class="check portfolio-toggle"><input type="checkbox" data-feature-toggle-portfolio="${esc(item.id)}" ${item.featured?'checked':''}><span>Homepage featured</span></label>
+          </div>
+        </div>
+        <div class="portfolio-admin-actions"><button type="button" class="btn" data-edit-portfolio="${esc(item.id)}">Edit</button><button type="button" class="btn danger" data-delete-portfolio="${esc(item.id)}">Delete</button></div>
+      </div>`;
+    }).join('') || '<p class="muted">No portfolio artwork yet. Upload your first pieces above.</p>';
+
+    list.querySelectorAll('[data-edit-portfolio]').forEach(b=>b.addEventListener('click',()=>openPortfolioEditor(portfolioAdminItems.find(x=>x.id===b.dataset.editPortfolio))));
+    list.querySelectorAll('[data-delete-portfolio]').forEach(b=>b.addEventListener('click',()=>deletePortfolioItem(portfolioAdminItems.find(x=>x.id===b.dataset.deletePortfolio))));
+    list.querySelectorAll('[data-visibility-portfolio]').forEach(b=>b.addEventListener('change',()=>setPortfolioVisibility(b.dataset.visibilityPortfolio,b.checked,b)));
+    list.querySelectorAll('[data-feature-toggle-portfolio]').forEach(b=>b.addEventListener('change',()=>setPortfolioFeatured(b.dataset.featureTogglePortfolio,b.checked,b)));
+    list.querySelectorAll('[data-portfolio-select]').forEach(b=>b.addEventListener('change',updatePortfolioSelectionUi));
+    updatePortfolioSelectionUi();
+  }
+
+  async function loadPortfolioAdmin(){
+    showPortfolioMessage('Loading portfolio…');
+    const {data,error}=await client.from('portfolio_items').select('*').order('sort_order').order('created_at');
+    if(error){showPortfolioMessage(error.message,true);return;}
+    renderPortfolioAdmin(data||[]);
+    showPortfolioMessage(`${(data||[]).length} artwork${(data||[]).length===1?'':'s'} loaded.`);
+  }
+
+  async function uploadPortfolioImage(file,idOverride=null){
+    if(!file || !file.type.startsWith('image/')) throw new Error(`"${file?.name||'File'}" is not an image.`);
+    const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'')||'artwork-image';
+    const id=idOverride||currentPortfolioId||crypto.randomUUID();
+    const path=`portfolio/${id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
+    const {error}=await client.storage.from('portfolio-art').upload(path,file,{upsert:false,contentType:file.type,cacheControl:'31536000'});
+    if(error)throw error;
+    const url=client.storage.from('portfolio-art').getPublicUrl(path).data.publicUrl;
+    return {path,url};
+  }
+
+  async function getNextPortfolioSort(){
+    const {data,error}=await client.from('portfolio_items').select('sort_order').order('sort_order',{ascending:false}).limit(1);
+    if(error)throw error;
+    return Number(data?.[0]?.sort_order)||0;
+  }
+
+  async function bulkUploadPortfolio(){
+    const input=document.getElementById('portfolioBulkImages');
+    const files=[...(input?.files||[])];
+    if(!files.length){showPortfolioBulkStatus('Select one or more image files first.',true);return;}
+    const button=document.getElementById('uploadPortfolioBulkBtn');
+    button.disabled=true;
+    input.disabled=true;
+    showPortfolioBulkStatus(`Uploading 0/${files.length}…`);
+    try{
+      let nextSort=await getNextPortfolioSort();
+      let uploaded=0;
+      const failed=[];
+      for(const file of files){
+        try{
+          const id=crypto.randomUUID();
+          const uploadedImage=await uploadPortfolioImage(file,id);
+          nextSort+=1;
+          const payload={
+            id,
+            title:'',
+            category:'',
+            image_path:uploadedImage.path,
+            image_url:uploadedImage.url,
+            alt_text:'',
+            sort_order:nextSort,
+            active:true,
+            featured:false
+          };
+          const {error}=await client.from('portfolio_items').insert(payload);
+          if(error){
+            await client.storage.from('portfolio-art').remove([uploadedImage.path]);
+            throw error;
+          }
+          uploaded++;
+          showPortfolioBulkStatus(`Uploading ${uploaded}/${files.length}…`);
+        }catch(err){failed.push(`${file.name}: ${err.message||String(err)}`);}
+      }
+      input.value='';
+      if(failed.length){
+        showPortfolioBulkStatus(`${uploaded} uploaded, ${failed.length} failed.`,true);
+        showPortfolioMessage(failed.join(' | '),true);
+      }else{
+        showPortfolioBulkStatus(`${uploaded} artwork${uploaded===1?'':'s'} uploaded successfully.`);
+        showPortfolioMessage('Bulk upload complete. New artwork is visible and not featured.');
+      }
+      await loadPortfolioAdmin();
+    }catch(err){showPortfolioBulkStatus(err.message||String(err),true);}
+    finally{button.disabled=false;input.disabled=false;}
+  }
+
+  async function setPortfolioVisibility(id,visible,checkbox){
+    checkbox.disabled=true;
+    const {error}=await client.from('portfolio_items').update({active:visible}).eq('id',id);
+    checkbox.disabled=false;
+    if(error){checkbox.checked=!visible;showPortfolioMessage(error.message,true);return;}
+    const item=portfolioAdminItems.find(x=>x.id===id);if(item)item.active=visible;
+    showPortfolioMessage(visible?'Artwork is now visible.':'Artwork hidden from the public portfolio.');
+  }
+
+  async function setPortfolioFeatured(id,featured,checkbox){
+    checkbox.disabled=true;
+    if(featured){
+      const {count,error:countError}=await client.from('portfolio_items').select('id',{count:'exact',head:true}).eq('active',true).eq('featured',true);
+      if(countError){checkbox.checked=false;checkbox.disabled=false;showPortfolioMessage(countError.message,true);return;}
+      const item=portfolioAdminItems.find(x=>x.id===id);
+      if(!item?.featured && (count||0)>=3){checkbox.checked=false;checkbox.disabled=false;showPortfolioMessage('You can only have 3 featured artworks. Unfeature one first.',true);return;}
+    }
+    const {error}=await client.from('portfolio_items').update({featured}).eq('id',id);
+    checkbox.disabled=false;
+    if(error){checkbox.checked=!featured;showPortfolioMessage(error.message,true);return;}
+    const item=portfolioAdminItems.find(x=>x.id===id);if(item)item.featured=featured;
+    showPortfolioMessage(featured?'Artwork added to homepage featured artwork.':'Artwork removed from homepage featured artwork.');
+  }
+
+  async function deletePortfolioItem(item){
+    if(!item)return;
+    if(!confirm(`Delete ${item.title||item.category||'this artwork'}? This cannot be undone.`))return;
+    if(item.image_path){const {error:storageError}=await client.storage.from('portfolio-art').remove([item.image_path]);if(storageError){showPortfolioMessage(storageError.message,true);return;}}
+    const {error}=await client.from('portfolio_items').delete().eq('id',item.id);
+    if(error){showPortfolioMessage(error.message,true);return;}
+    closePortfolioEditor();
+    await loadPortfolioAdmin();
+    showPortfolioMessage('Artwork deleted.');
+  }
+
+  async function runPortfolioBulkAction(action){
+    const ids=selectedPortfolioIds();
+    if(!ids.length)return;
+    const buttons=[...document.querySelectorAll('[data-bulk-action]')];
+    buttons.forEach(b=>b.disabled=true);
+    try{
+      if(action==='delete'){
+        if(!confirm(`Delete ${ids.length} selected artwork${ids.length===1?'':'s'}? This cannot be undone.`))return;
+        const selected=portfolioAdminItems.filter(item=>ids.includes(item.id));
+        const paths=selected.map(item=>item.image_path).filter(Boolean);
+        if(paths.length){const {error}=await client.storage.from('portfolio-art').remove(paths);if(error)throw error;}
+        const {error}=await client.from('portfolio_items').delete().in('id',ids);
+        if(error)throw error;
+        showPortfolioMessage(`${ids.length} artwork${ids.length===1?'':'s'} deleted.`);
+      }else if(action==='show' || action==='hide'){
+        const {error}=await client.from('portfolio_items').update({active:action==='show'}).in('id',ids);
+        if(error)throw error;
+        showPortfolioMessage(`${ids.length} artwork${ids.length===1?'':'s'} ${action==='show'?'made visible':'hidden'}.`);
+      }else if(action==='unfeature'){
+        const {error}=await client.from('portfolio_items').update({featured:false}).in('id',ids);
+        if(error)throw error;
+        showPortfolioMessage(`${ids.length} artwork${ids.length===1?'':'s'} unfeatured.`);
+      }else if(action==='feature'){
+        const selected=portfolioAdminItems.filter(item=>ids.includes(item.id));
+        const selectedActive=selected.filter(item=>item.active);
+        const newActiveFeatured=selectedActive.filter(item=>!item.featured).length;
+        const {count,error:countError}=await client.from('portfolio_items').select('id',{count:'exact',head:true}).eq('active',true).eq('featured',true);
+        if(countError)throw countError;
+        if((count||0)+newActiveFeatured>3)throw new Error('You can only have 3 featured artworks. Unfeature one first.');
+        const activeIds=selectedActive.map(item=>item.id);
+        if(activeIds.length){
+          const {error}=await client.from('portfolio_items').update({featured:true}).in('id',activeIds);
+          if(error)throw error;
+        }
+        const hiddenCount=selected.length-selectedActive.length;
+        if(hiddenCount)showPortfolioMessage(`${activeIds.length} artwork${activeIds.length===1?'':'s'} featured${hiddenCount?' · hidden selected artwork was left unchanged':''}.`);
+        if(error)throw error;
+      }
+      await loadPortfolioAdmin();
+    }catch(err){showPortfolioMessage(err.message||String(err),true);}
+    finally{updatePortfolioSelectionUi();}
+  }
+
+  document.getElementById('addPortfolioBtn')?.addEventListener('click',()=>openPortfolioEditor());
+  document.getElementById('cancelPortfolioBtn')?.addEventListener('click',closePortfolioEditor);
+  document.getElementById('uploadPortfolioBulkBtn')?.addEventListener('click',bulkUploadPortfolio);
+  document.getElementById('portfolioSelectAll')?.addEventListener('change',e=>{
+    document.querySelectorAll('[data-portfolio-select]').forEach(box=>box.checked=e.target.checked);
+    updatePortfolioSelectionUi();
+  });
+  document.querySelectorAll('[data-bulk-action]').forEach(btn=>btn.addEventListener('click',()=>runPortfolioBulkAction(btn.dataset.bulkAction)));
+
+  document.getElementById('portfolioForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const title=document.getElementById('portfolioTitle').value.trim();
+    const category=document.getElementById('portfolioCategory').value.trim();
+    const file=document.getElementById('portfolioImage').files?.[0]||null;
+    if(!currentPortfolioId && !file){showPortfolioMessage('Choose an artwork image first.',true);return;}
+    const saveBtn=e.submitter; if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Saving…';}
+    showPortfolioMessage(file?'Uploading artwork…':'Saving artwork…');
+    try{
+      let imagePath=currentPortfolioImage?.image_path||'';
+      let imageUrl=currentPortfolioImage?.image_url||'';
+      if(file){
+        const uploaded=await uploadPortfolioImage(file);
+        imagePath=uploaded.path;imageUrl=uploaded.url;
+        if(currentPortfolioImage?.image_path) await client.storage.from('portfolio-art').remove([currentPortfolioImage.image_path]);
+      }
+      const featured=document.getElementById('portfolioFeatured').checked;
+      if(featured && !currentPortfolioImage?.featured){
+        const {count,error:countError}=await client.from('portfolio_items').select('id',{count:'exact',head:true}).eq('active',true).eq('featured',true);
+        if(countError)throw countError;
+        if((count||0)>=3)throw new Error('You can only have 3 featured artworks. Unfeature one first.');
+      }
+      const payload={title,category,image_path:imagePath,image_url:imageUrl,alt_text:document.getElementById('portfolioAlt').value.trim(),sort_order:Number(document.getElementById('portfolioSort').value)||0,active:document.getElementById('portfolioActive').checked,featured};
+      let result;
+      if(currentPortfolioId) result=await client.from('portfolio_items').update(payload).eq('id',currentPortfolioId).select('*').single();
+      else result=await client.from('portfolio_items').insert(payload).select('*').single();
+      if(result.error)throw result.error;
+      showPortfolioMessage('Artwork saved.');
+      document.getElementById('portfolioImage').value='';
+      await loadPortfolioAdmin();
+      openPortfolioEditor(result.data);
+    }catch(err){showPortfolioMessage(err.message||String(err),true)}
+    finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save Artwork';}}
+  });
 
   let currentOfferId = null;
   let currentSamples = [];
 
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
-  const sampleData = offer => Array.isArray(offer?.options?.samples) ? offer.options.samples : [];
+  const sampleData = offer => Array.isArray(offer?.options?.samples) ? offer.options.samples.filter(Boolean) : [];
   const publicSampleUrl = sample => {
     if (!sample) return '';
     if (sample.url) return sample.url;
@@ -193,17 +711,13 @@
 
   function renderSamples() {
     const box = document.getElementById('sampleList');
-    if (!currentSamples.length) {
-      box.innerHTML = '<p class="muted">No samples added.</p>';
-      return;
-    }
+    const count = currentSamples.length;
     box.innerHTML = currentSamples.map((sample, i) => {
       const url = publicSampleUrl(sample);
-      return `<div class="sample-admin-item">
-        <img src="${esc(url)}" alt="${esc(sample.name || 'Commission sample')}" loading="lazy">
-        <button type="button" class="sample-remove" data-sample-index="${i}" aria-label="Remove sample">×</button>
-      </div>`;
-    }).join('');
+      if (sample && url) return `<div class="sample-admin-slot filled"><div class="sample-slot-number">${i+1}</div><img src="${esc(url)}" alt="Commission sample ${i+1}" loading="lazy"><div class="sample-slot-actions"><button type="button" class="sample-remove" data-sample-index="${i}" aria-label="Remove sample ${i+1}">×</button><label class="sample-replace btn" for="replaceSample${i}">Replace</label><input id="replaceSample${i}" class="sample-file-input" type="file" accept="image/*" data-sample-slot="${i}"></div></div>`;
+      return '';
+    }).join('') + `<div class="sample-admin-slot empty sample-add-card"><div class="sample-empty-icon">+</div><strong>${count ? 'Add another sample' : 'Add your first sample'}</strong><span class="muted small">No fixed limit</span><label class="btn btn-secondary sample-add-label" for="addSampleNew">Choose image</label><input id="addSampleNew" class="sample-file-input" type="file" accept="image/*" data-sample-slot="${count}"></div>`;
+
     box.querySelectorAll('[data-sample-index]').forEach(btn => btn.addEventListener('click', async () => {
       const i = Number(btn.dataset.sampleIndex);
       const sample = currentSamples[i];
@@ -215,6 +729,12 @@
       }
       if (currentOfferId) await saveSamples();
     }));
+
+    box.querySelectorAll('.sample-file-input').forEach(input => input.addEventListener('change', async e => {
+      const file=e.target.files?.[0]; if(!file) return;
+      await uploadSampleToSlot(file, Number(input.dataset.sampleSlot));
+      e.target.value='';
+    }));
   }
 
   async function saveSamples() {
@@ -222,30 +742,26 @@
     const {data:offer, error:getError} = await client.from('commission_offers').select('options').eq('id', currentOfferId).single();
     if (getError) { showCatalogMessage(getError.message, true); return; }
     const options = (offer && offer.options && typeof offer.options === 'object') ? offer.options : {};
-    options.samples = currentSamples;
+    options.samples = currentSamples.filter(Boolean);
     const {error} = await client.from('commission_offers').update({options}).eq('id', currentOfferId);
     if (error) showCatalogMessage(error.message, true);
   }
 
-  async function uploadSamples(files) {
-    if (!files.length) return;
-    if (!currentOfferId) {
-      showCatalogMessage('Save the commission first, then add sample images.', true);
-      return;
-    }
-    showCatalogMessage('Uploading sample image(s)…');
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) continue;
-      const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'sample-image';
-      const path = `commission-samples/${currentOfferId}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
-      const {error} = await client.storage.from('commission-assets').upload(path, file, {upsert:false, contentType:file.type});
-      if (error) { showCatalogMessage(error.message, true); continue; }
-      const url = client.storage.from('commission-assets').getPublicUrl(path).data.publicUrl;
-      currentSamples.push({path, url, name:file.name});
-    }
+  async function uploadSampleToSlot(file, slot) {
+    if (!currentOfferId) { showCatalogMessage('Save the commission first, then add its sample images.', true); return; }
+    if (!file.type.startsWith('image/')) return;
+    showCatalogMessage(`Uploading sample ${slot+1}…`);
+    const previous=currentSamples[slot];
+    const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'sample-image';
+    const path = `commission-samples/${currentOfferId}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
+    const {error}=await client.storage.from('commission-assets').upload(path,file,{upsert:false,contentType:file.type});
+    if(error){showCatalogMessage(error.message,true);return;}
+    const url=client.storage.from('commission-assets').getPublicUrl(path).data.publicUrl;
+    currentSamples[slot]={path,url,name:file.name};
+    if(previous?.path) await client.storage.from('commission-assets').remove([previous.path]);
     renderSamples();
     await saveSamples();
-    showCatalogMessage('Sample image(s) saved.');
+    showCatalogMessage(`Sample ${slot+1} saved.`);
   }
 
   function showCatalogMessage(text, error=false) {
@@ -256,7 +772,7 @@
 
   function openEditor(offer=null) {
     currentOfferId = offer?.id || null;
-    currentSamples = sampleData(offer).map(x => ({...x}));
+    currentSamples = sampleData(offer).map(x => x ? ({...x}) : null);
     document.getElementById('editorTitle').textContent = offer ? `Edit ${offer.name}` : 'Add Commission';
     document.getElementById('offerName').value = offer?.name || '';
     document.getElementById('offerCategory').value = offer?.category || 'Character Illustration';
@@ -282,7 +798,7 @@
     list.innerHTML = (offers||[]).map(o => {
       const samples=sampleData(o);
       return `<div class="catalog-admin-row">
-        <div><strong>${esc(o.name)}</strong><div class="muted">${esc(o.category)} · ${o.base_price == null ? 'Estimate' : '$'+Number(o.base_price).toFixed(2)} · ${o.active ? 'VISIBLE' : 'HIDDEN'} · ${samples.length} sample${samples.length===1?'':'s'}</div></div>
+        <div><strong>${esc(o.name)}</strong><div class="muted">${esc(o.category)} · ${o.base_price == null ? 'Estimate' : '$'+Number(o.base_price).toFixed(2)} · ${o.active ? 'VISIBLE' : 'HIDDEN'} · ${samples.filter(Boolean).length} samples</div></div>
         <div class="catalog-admin-actions"><button type="button" class="btn" data-edit-offer="${o.id}">Edit</button><button type="button" class="btn" data-toggle-offer="${o.id}">${o.active?'Hide':'Show'}</button><button type="button" class="btn danger" data-delete-offer="${o.id}">Delete</button></div>
       </div>`;
     }).join('') || '<p class="muted">No offers yet.</p>';
@@ -295,20 +811,20 @@
     list.querySelectorAll('[data-delete-offer]').forEach(b=>b.addEventListener('click',async()=>{
       const offer=(offers||[]).find(o=>o.id===b.dataset.deleteOffer); if(!offer)return;
       if(!confirm(`Delete ${offer.name}? This cannot be undone.`))return;
-      const paths=sampleData(offer).map(x=>x.path).filter(Boolean);
+      const paths=sampleData(offer).filter(Boolean).map(x=>x.path).filter(Boolean);
       if(paths.length) await client.storage.from('commission-assets').remove(paths);
       const {error}=await client.from('commission_offers').delete().eq('id',offer.id);
       if(error)showCatalogMessage(error.message,true); else {closeEditor();await loadCatalog();}
     }));
   }
 
+  document.getElementById('siteContentEditor')?.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-content-save-key]');
+    if(!btn)return;
+    saveSingleSiteContent(btn.dataset.contentSaveKey,btn);
+  });
   document.getElementById('addOfferBtn').addEventListener('click',()=>openEditor());
   document.getElementById('cancelOfferBtn').addEventListener('click',closeEditor);
-  document.getElementById('addSampleBtn').addEventListener('click',()=>{
-    if (!currentOfferId) { showCatalogMessage('Save the commission first, then add sample images.', true); return; }
-    document.getElementById('sampleInput').click();
-  });
-  document.getElementById('sampleInput').addEventListener('change',async e=>{await uploadSamples([...e.target.files]);e.target.value='';});
   document.getElementById('offerForm').addEventListener('submit',async e=>{
     e.preventDefault();
     const name=document.getElementById('offerName').value.trim();
@@ -362,6 +878,7 @@
   });
 
   let currentRequestId = null;
+  let requestRows = [];
 
   const fmtMoney = v => v == null || v === '' ? '—' : '$' + Number(v).toFixed(2);
   const fmtDate = v => v ? new Date(v).toLocaleString() : '—';
@@ -375,7 +892,7 @@
 
   function requestDetailRows(r) {
     const rows = [
-      ['Instagram', r.instagram_username], ['Email', r.email],
+      ['Preferred contact', r.preferred_contact_method ? (String(r.preferred_contact_method).replaceAll('_',' ')+': '+(r.preferred_contact_value||'—')) : (r.instagram_username ? 'Instagram: '+r.instagram_username : '—')], ['Email', r.email],
       ['Commission', r.commission_type], ['Format', r.format],
       ['Characters', r.character_count], ['Usage', r.usage_type],
       ['Background', r.background], ['Custom complexity', r.custom_complexity],
@@ -398,21 +915,70 @@
     document.getElementById('paymentNote').value=data?.payment_note||'';
   }
 
+  function updateRequestStats(data){
+    const rows=data||[];
+    document.getElementById('newCount').textContent=rows.filter(r=>r.status==='NEW').length;
+    document.getElementById('paymentCount').textContent=rows.filter(r=>r.status==='ACCEPTED_AWAITING_PAYMENT').length;
+    document.getElementById('claimedCount').textContent=rows.filter(r=>r.status==='PAYMENT_CLAIMED').length;
+    document.getElementById('paidCount').textContent=rows.filter(r=>r.status==='PAID').length;
+    document.getElementById('progressCount').textContent=rows.filter(r=>r.status==='IN_PROGRESS').length;
+    document.getElementById('completedCount').textContent=rows.filter(r=>r.status==='COMPLETED').length;
+  }
+
+  function renderRequestList(){
+    const list=document.getElementById('requestsList');
+    const q=(document.getElementById('requestSearch')?.value||'').trim().toLowerCase();
+    const status=document.getElementById('requestStatusFilter')?.value||'ALL';
+    const filtered=requestRows.filter(r=>{
+      if(status!=='ALL' && r.status!==status)return false;
+      if(!q)return true;
+      return [r.request_number,r.instagram_username,r.preferred_contact_method,r.preferred_contact_value,r.email,r.commission_type,r.status].some(v=>String(v||'').toLowerCase().includes(q));
+    });
+    list.innerHTML=filtered.map(r=>`<div class="catalog-admin-row request-row">
+      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · ${esc(statusLabel(r.status))} · ${fmtMoney(r.final_price ?? r.estimated_price)} · ${esc(fmtDate(r.created_at))}</div></div>
+      <div class="catalog-admin-actions"><button type="button" class="btn" data-open-request="${r.id}">Open</button></div>
+    </div>`).join('') || '<p class="muted">No requests match the current search/filter.</p>';
+    list.querySelectorAll('[data-open-request]').forEach(b=>b.addEventListener('click',()=>openRequest(requestRows.find(r=>r.id===b.dataset.openRequest))));
+    showRequestsMessage(`${filtered.length} of ${requestRows.length} request${requestRows.length===1?'':'s'} shown.`);
+  }
+
+  function showArchiveMessage(text, error=false){
+    const el=document.getElementById('archiveMessage');
+    if(!el)return;
+    el.textContent=text||'';
+    el.style.color=error?'var(--pink)':'';
+  }
+
+  function renderArchive(){
+    const box=document.getElementById('archiveList');
+    if(!box)return;
+    const q=(document.getElementById('archiveSearch')?.value||'').trim().toLowerCase();
+    const archived=requestRows.filter(r=>r.status==='COMPLETED').filter(r=>{
+      if(!q)return true;
+      return [r.request_number,r.instagram_username,r.preferred_contact_method,r.preferred_contact_value,r.email,r.commission_type,r.status].some(v=>String(v||'').toLowerCase().includes(q));
+    }).sort((a,b)=>new Date(b.completed_at||b.updated_at||b.created_at)-new Date(a.completed_at||a.updated_at||a.created_at));
+    if(!archived.length){
+      box.innerHTML='<p class="muted">No completed commissions in the archive.</p>';
+      showArchiveMessage(q?'No archived commissions match your search.':'0 archived commissions.');
+      return;
+    }
+    box.innerHTML=archived.map(r=>`<div class="catalog-admin-row request-row">
+      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · COMPLETED · ${fmtMoney(r.final_price ?? r.estimated_price)} · completed ${esc(fmtDate(r.completed_at||r.updated_at||r.created_at))}</div></div>
+      <div class="catalog-admin-actions"><button type="button" class="btn" data-open-archive-request="${r.id}">Open</button></div>
+    </div>`).join('');
+    box.querySelectorAll('[data-open-archive-request]').forEach(b=>b.addEventListener('click',()=>openRequest(requestRows.find(r=>r.id===b.dataset.openArchiveRequest),true)));
+    showArchiveMessage(`${archived.length} archived commission${archived.length===1?'':'s'} shown.`);
+  }
+
   async function loadRequests() {
     showRequestsMessage('Loading…');
     const {data,error}=await client.from('commission_requests').select('*').order('created_at',{ascending:false});
     if(error){showRequestsMessage(error.message,true);return;}
-    const list=document.getElementById('requestsList');
-    list.innerHTML=(data||[]).map(r=>`<div class="catalog-admin-row">
-      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type)}<div class="muted">${esc(r.instagram_username)} · ${esc(statusLabel(r.status))} · ${fmtMoney(r.final_price ?? r.estimated_price)} · ${esc(fmtDate(r.created_at))}</div></div>
-      <div class="catalog-admin-actions"><button type="button" class="btn" data-open-request="${r.id}">Open</button></div>
-    </div>`).join('') || '<p class="muted">No commission requests yet.</p>';
-    list.querySelectorAll('[data-open-request]').forEach(b=>b.addEventListener('click',()=>openRequest((data||[]).find(r=>r.id===b.dataset.openRequest))));
-    showRequestsMessage(`${(data||[]).length} request${(data||[]).length===1?'':'s'}.`);
-    document.getElementById('newCount').textContent=(data||[]).filter(r=>r.status==='NEW').length;
-    document.getElementById('paymentCount').textContent=(data||[]).filter(r=>['ACCEPTED_AWAITING_PAYMENT','PAYMENT_CLAIMED'].includes(r.status)).length;
-    document.getElementById('progressCount').textContent=(data||[]).filter(r=>r.status==='IN_PROGRESS').length;
-    renderQueue(data||[]);
+    requestRows=data||[];
+    updateRequestStats(requestRows);
+    renderRequestList();
+    renderQueue(requestRows);
+    renderArchive();
   }
 
   function renderQueue(requests){
@@ -449,20 +1015,28 @@
     await loadRequests();
   }
 
-  async function openRequest(r) {
+  async function openRequest(r, archived=false) {
     if(!r)return;
     currentRequestId=r.id;
-    document.getElementById('requestEditorTitle').textContent=`Request #${r.request_number}`;
-    document.getElementById('requestMeta').textContent=`${statusLabel(r.status)} · submitted ${fmtDate(r.created_at)}`;
+    document.getElementById('requestEditorTitle').textContent=`${archived?'Archived Commission':'Request'} #${r.request_number}`;
+    document.getElementById('requestMeta').textContent=`${statusLabel(r.status)} · submitted ${fmtDate(r.created_at)}${archived?' · archived for record keeping':''}`;
     document.getElementById('requestDetails').innerHTML=requestDetailRows(r);
     document.getElementById('requestStatus').value=r.status;
     document.getElementById('requestFinalPrice').value=r.final_price ?? '';
     document.getElementById('requestPaymentInstructions').value=r.payment_instructions || '';
     document.getElementById('requestDeclineReason').value=r.decline_reason || '';
     document.getElementById('requestDeclineMessage').value=r.decline_message || '';
+    document.getElementById('requestPaymentRejectionMessage').value=r.payment_rejection_message || '';
+    document.getElementById('requestAdminNotes').value=r.admin_notes || '';
+    const qs=document.getElementById('requestQuickStatus'); qs.textContent=statusLabel(r.status); qs.className='status-pill status-'+String(r.status||'').toLowerCase();
+    document.getElementById('requestMarkInProgressBtn').hidden=r.status!=='PAID';
+    document.getElementById('requestMarkCompletedBtn').hidden=r.status!=='IN_PROGRESS';
     document.getElementById('requestSaveMessage').textContent='';
     document.getElementById('requestEditor').hidden=false;
     await loadRequestFiles(r.id);
+    await loadFinalDelivery(r.id);
+    document.getElementById('finalDeliveryMessage').textContent='';
+    await loadCommissionUpdates(r.id);
     document.getElementById('requestEditor').scrollIntoView({behavior:'smooth',block:'start'});
   }
 
@@ -475,15 +1049,128 @@
     box.innerHTML='';
     for(const f of data){
       const {data:urlData,error:urlError}=await client.storage.from('commission-references').createSignedUrl(f.storage_path,3600);
-      const wrap=document.createElement('div'); wrap.className='sample-admin-item';
+      const wrap=document.createElement('div'); wrap.className='sample-admin-item reference-card';
       if(!urlError && urlData?.signedUrl){
-        wrap.innerHTML=`<a href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(urlData.signedUrl)}" alt="${esc(f.original_name||'Reference')}" loading="lazy"></a><div class="muted" style="font-size:.75rem;padding:5px">${esc(f.original_name||'Reference')} · ${esc(f.file_type)}</div>`;
+        wrap.innerHTML=`<a class="reference-image" href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(urlData.signedUrl)}" alt="${esc(f.original_name||'Reference')}" loading="lazy"></a><div class="reference-meta"><strong>${esc(f.original_name||'Reference')}</strong><span>${esc(f.file_type)}</span></div>`;
       } else {
         wrap.innerHTML=`<div class="muted" style="padding:12px">${esc(f.original_name||'Reference')}<br>${esc(urlError?.message||'Unable to load file')}</div>`;
       }
       box.appendChild(wrap);
     }
   }
+
+  async function loadFinalDelivery(requestId){
+    const statusEl=document.getElementById('finalDeliveryStatus');
+    const removeBtn=document.getElementById('removeFinalArtworkBtn');
+    const driveInput=document.getElementById('finalDriveUrl');
+    if(!statusEl)return;
+    statusEl.textContent='Checking final artwork delivery…';
+    removeBtn.hidden=true;
+    if(driveInput)driveInput.value='';
+    const {data,error}=await client.from('commission_deliveries').select('*').eq('request_id',requestId).maybeSingle();
+    if(error){statusEl.textContent=error.message;return;}
+    if(!data){statusEl.textContent='No final artwork delivery set yet.';return;}
+    const size=data.preview_size_bytes ? ` · preview ${(Number(data.preview_size_bytes)/1024/1024).toFixed(2)} MB` : '';
+    statusEl.innerHTML=`<strong>Ready:</strong> ${esc(data.original_name||'final artwork')} · ${esc(fmtDate(data.created_at))}${size}`;
+    if(driveInput)driveInput.value=data.drive_url||'';
+    removeBtn.hidden=false;
+  }
+
+  async function compressPreview(file){
+    const img=await new Promise((resolve,reject)=>{
+      const url=URL.createObjectURL(file);
+      const image=new Image();
+      image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};
+      image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Unable to read the preview image.'))};
+      image.src=url;
+    });
+    const max=1600;
+    const scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+    canvas.height=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw new Error('Unable to prepare the preview image.');
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/webp',0.78));
+    if(!blob)throw new Error('Unable to compress the preview image.');
+    return new File([blob],'preview.webp',{type:'image/webp'});
+  }
+
+  document.getElementById('uploadFinalArtworkBtn')?.addEventListener('click',()=>document.getElementById('finalArtworkInput')?.click());
+  document.getElementById('finalArtworkInput')?.addEventListener('change',async e=>{
+    const file=e.target.files?.[0];
+    e.target.value='';
+    if(!file || !currentRequestId)return;
+    if(!file.type.startsWith('image/')){document.getElementById('finalDeliveryMessage').textContent='Please choose an image file for the preview.';document.getElementById('finalDeliveryMessage').style.color='var(--pink)';return;}
+    const driveUrl=document.getElementById('finalDriveUrl')?.value.trim()||'';
+    if(!driveUrl){document.getElementById('finalDeliveryMessage').textContent='Paste the Google Drive link first.';document.getElementById('finalDeliveryMessage').style.color='var(--pink)';return;}
+    let parsed;
+    try{parsed=new URL(driveUrl)}catch(_){parsed=null;}
+    if(!parsed || !['drive.google.com','docs.google.com'].includes(parsed.hostname)){document.getElementById('finalDeliveryMessage').textContent='Please enter a valid Google Drive link.';document.getElementById('finalDeliveryMessage').style.color='var(--pink)';return;}
+    const msg=document.getElementById('finalDeliveryMessage');
+    const btn=document.getElementById('uploadFinalArtworkBtn');
+    btn.disabled=true; msg.style.color=''; msg.textContent='Compressing preview…';
+    try{
+      const preview=await compressPreview(file);
+      msg.textContent='Uploading preview and saving Google Drive link…';
+      const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'')||'final-artwork';
+      const path=`final-previews/${currentRequestId}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}.webp`;
+      const {error:uploadError}=await client.storage.from('commission-previews').upload(path,preview,{upsert:false,contentType:'image/webp',cacheControl:'3600'});
+      if(uploadError)throw uploadError;
+      const {data:old}=await client.from('commission_deliveries').select('preview_path').eq('request_id',currentRequestId).maybeSingle();
+      const {error:saveError}=await client.from('commission_deliveries').upsert({request_id:currentRequestId,preview_path:path,original_name:file.name,drive_url:driveUrl,preview_mime_type:'image/webp',preview_size_bytes:preview.size},{onConflict:'request_id'});
+      if(saveError){await client.storage.from('commission-previews').remove([path]);throw saveError;}
+      if(old?.preview_path && old.preview_path!==path){await client.storage.from('commission-previews').remove([old.preview_path]);}
+      msg.textContent='Final artwork delivery saved.';
+      await loadFinalDelivery(currentRequestId);
+    }catch(err){msg.textContent=err?.message||'Unable to save final artwork delivery.';msg.style.color='var(--pink)';}
+    finally{btn.disabled=false;}
+  });
+
+  document.getElementById('removeFinalArtworkBtn')?.addEventListener('click',async()=>{
+    if(!currentRequestId)return;
+    if(!confirm('Remove the final artwork delivery from this commission?'))return;
+    const msg=document.getElementById('finalDeliveryMessage');
+    const {data,error}=await client.from('commission_deliveries').select('preview_path').eq('request_id',currentRequestId).maybeSingle();
+    if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
+    if(data?.preview_path)await client.storage.from('commission-previews').remove([data.preview_path]);
+    const {error:deleteError}=await client.from('commission_deliveries').delete().eq('request_id',currentRequestId);
+    if(deleteError){msg.textContent=deleteError.message;msg.style.color='var(--pink)';return;}
+    msg.textContent='Final artwork delivery removed.'; msg.style.color='';
+    await loadFinalDelivery(currentRequestId);
+  });
+
+  async function loadCommissionUpdates(requestId){
+    const box=document.getElementById('adminUpdateList');
+    if(!box)return;
+    box.innerHTML='<p class="muted">Loading updates…</p>';
+    const {data,error}=await client.from('commission_updates').select('*').eq('request_id',requestId).order('created_at',{ascending:false});
+    if(error){box.innerHTML=`<p class="muted">${esc(error.message)}</p>`;return;}
+    if(!data?.length){box.innerHTML='<p class="muted">No client updates yet.</p>';return;}
+    box.innerHTML=data.map(u=>`<div class="catalog-admin-row" style="align-items:flex-start"><div><strong>${esc(u.title||'Commission update')}</strong><div class="muted">${esc(String(u.update_type||'PROGRESS').replaceAll('_',' '))} · ${esc(fmtDate(u.created_at))}</div><div style="white-space:pre-wrap;margin-top:7px">${esc(u.message)}</div></div><button type="button" class="btn" data-delete-update="${u.id}">Delete</button></div>`).join('');
+    box.querySelectorAll('[data-delete-update]').forEach(b=>b.addEventListener('click',async()=>{
+      if(!confirm('Delete this client update?'))return;
+      const {error}=await client.from('commission_updates').delete().eq('id',b.dataset.deleteUpdate);
+      if(error){document.getElementById('commissionUpdateMessageStatus').textContent=error.message;document.getElementById('commissionUpdateMessageStatus').style.color='var(--pink)';return;}
+      await loadCommissionUpdates(requestId);
+    }));
+  }
+
+  document.getElementById('commissionUpdateForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!currentRequestId)return;
+    const statusEl=document.getElementById('commissionUpdateMessageStatus');
+    statusEl.textContent='Posting…'; statusEl.style.color='';
+    const payload={request_id:currentRequestId,title:document.getElementById('commissionUpdateTitle').value.trim(),message:document.getElementById('commissionUpdateMessage').value.trim(),update_type:document.getElementById('commissionUpdateType').value};
+    if(!payload.message){statusEl.textContent='Message is required.';statusEl.style.color='var(--pink)';return;}
+    const {error}=await client.from('commission_updates').insert(payload);
+    if(error){statusEl.textContent=error.message;statusEl.style.color='var(--pink)';return;}
+    document.getElementById('commissionUpdateTitle').value='';
+    document.getElementById('commissionUpdateMessage').value='';
+    statusEl.textContent='Update posted.';
+    await loadCommissionUpdates(currentRequestId);
+  });
 
   document.getElementById('requestUpdateForm').addEventListener('submit',async e=>{
     e.preventDefault();
@@ -495,7 +1182,9 @@
       final_price:priceValue===''?null:Number(priceValue),
       payment_instructions:document.getElementById('requestPaymentInstructions').value.trim()||null,
       decline_reason:document.getElementById('requestDeclineReason').value.trim()||null,
-      decline_message:document.getElementById('requestDeclineMessage').value.trim()||null
+      decline_message:document.getElementById('requestDeclineMessage').value.trim()||null,
+      payment_rejection_message:document.getElementById('requestPaymentRejectionMessage').value.trim()||null,
+      admin_notes:document.getElementById('requestAdminNotes').value.trim()
     };
     const now=new Date().toISOString();
     if(status==='ACCEPTED_AWAITING_PAYMENT') payload.accepted_at=now;
@@ -510,6 +1199,107 @@
     await loadRequests();
     const {data:r}=await client.from('commission_requests').select('*').eq('id',currentRequestId).single();
     if(r) await openRequest(r);
+  });
+
+  document.getElementById('requestSearch')?.addEventListener('input',renderRequestList);
+  document.getElementById('requestStatusFilter')?.addEventListener('change',renderRequestList);
+  document.getElementById('archiveSearch')?.addEventListener('input',renderArchive);
+  document.getElementById('requestMarkInProgressBtn')?.addEventListener('click',async()=>{
+    if(!currentRequestId)return;
+    const {error}=await client.from('commission_requests').update({status:'IN_PROGRESS'}).eq('id',currentRequestId);
+    if(error){document.getElementById('requestSaveMessage').textContent=error.message;document.getElementById('requestSaveMessage').style.color='var(--pink)';return;}
+    await loadRequests(); const {data:r}=await client.from('commission_requests').select('*').eq('id',currentRequestId).single(); if(r)await openRequest(r);
+  });
+  document.getElementById('requestMarkCompletedBtn')?.addEventListener('click',async()=>{
+    if(!currentRequestId)return;
+    const {error}=await client.from('commission_requests').update({status:'COMPLETED',completed_at:new Date().toISOString()}).eq('id',currentRequestId);
+    if(error){document.getElementById('requestSaveMessage').textContent=error.message;document.getElementById('requestSaveMessage').style.color='var(--pink)';return;}
+    await loadRequests(); const {data:r}=await client.from('commission_requests').select('*').eq('id',currentRequestId).single(); if(r)await openRequest(r);
+  });
+
+  let currentDiscountId = null;
+  let discountRows = [];
+
+  function fmtDiscount(d){
+    return d.discount_type === 'percentage' ? `${Number(d.discount_value).toFixed(0)}% OFF` : `$${Number(d.discount_value).toFixed(2)} OFF`;
+  }
+  function discountDate(v){ return v ? new Date(v).toLocaleString() : 'Any time'; }
+  function discountIsCurrent(d){
+    const now=Date.now(), s=d.starts_at?new Date(d.starts_at).getTime():-Infinity, e=d.ends_at?new Date(d.ends_at).getTime():Infinity;
+    return !!d.active && now>=s && now<e;
+  }
+  function showDiscountMessage(text,error=false){
+    const el=document.getElementById('discountMessage'); if(!el)return;
+    el.textContent=text||''; el.style.color=error?'var(--pink)':'';
+  }
+  function closeDiscountEditor(){document.getElementById('discountEditor').hidden=true;currentDiscountId=null;}
+  function toLocalInput(v){ if(!v)return ''; const d=new Date(v); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+  function fromLocalInput(v){ return v ? new Date(v).toISOString() : null; }
+  async function loadDiscounts(){
+    const [dr,or]=await Promise.all([
+      client.from('commission_discounts').select('*').order('created_at',{ascending:false}),
+      client.from('commission_offers').select('id,name,category,base_price,active').order('sort_order')
+    ]);
+    if(dr.error){showDiscountMessage(dr.error.message,true);return;}
+    if(or.error){showDiscountMessage(or.error.message,true);return;}
+    discountRows=dr.data||[];
+    const offers=or.data||[];
+    const list=document.getElementById('discountList');
+    list.innerHTML=discountRows.map(d=>{
+      const offer=d.offer_id?offers.find(o=>o.id===d.offer_id):null;
+      const current=discountIsCurrent(d);
+      const status=!d.active?'INACTIVE':current?'LIVE':(d.starts_at&&new Date(d.starts_at)>new Date()?'SCHEDULED':'EXPIRED');
+      const scope=d.offer_id?(offer?.name||'Offer unavailable'):'ALL OFFERS';
+      return `<div class="catalog-admin-row"><div><strong>${esc(d.name)}</strong><div class="muted">${esc(scope)} · ${fmtDiscount(d)} · ${status}</div><div class="muted">${discountDate(d.starts_at)} → ${discountDate(d.ends_at)}</div></div><div class="catalog-admin-actions"><button type="button" class="btn" data-edit-discount="${d.id}">Edit</button><button type="button" class="btn" data-toggle-discount="${d.id}">${d.active?'Deactivate':'Activate'}</button><button type="button" class="btn danger" data-delete-discount="${d.id}">Delete</button></div></div>`;
+    }).join('') || '<p class="muted">No discounts yet.</p>';
+    list.querySelectorAll('[data-edit-discount]').forEach(b=>b.addEventListener('click',()=>openDiscountEditor(discountRows.find(d=>d.id===b.dataset.editDiscount))));
+    list.querySelectorAll('[data-toggle-discount]').forEach(b=>b.addEventListener('click',async()=>{
+      const d=discountRows.find(x=>x.id===b.dataset.toggleDiscount);if(!d)return;
+      const {error}=await client.from('commission_discounts').update({active:!d.active}).eq('id',d.id);
+      if(error)showDiscountMessage(error.message,true);else await loadDiscounts();
+    }));
+    list.querySelectorAll('[data-delete-discount]').forEach(b=>b.addEventListener('click',async()=>{
+      const d=discountRows.find(x=>x.id===b.dataset.deleteDiscount);if(!d)return;
+      if(!confirm(`Delete ${d.name}?`))return;
+      const {error}=await client.from('commission_discounts').delete().eq('id',d.id);
+      if(error)showDiscountMessage(error.message,true);else {closeDiscountEditor();await loadDiscounts();}
+    }));
+  }
+  function openDiscountEditor(d=null){
+    currentDiscountId=d?.id||null;
+    document.getElementById('discountEditorTitle').textContent=d?`Edit ${d.name}`:'Add Discount';
+    document.getElementById('discountName').value=d?.name||'';
+    document.getElementById('discountType').value=d?.discount_type||'percentage';
+    document.getElementById('discountValue').value=d?.discount_value??'';
+    document.getElementById('discountStarts').value=toLocalInput(d?.starts_at);
+    document.getElementById('discountEnds').value=toLocalInput(d?.ends_at);
+    document.getElementById('discountActive').checked=d?!!d.active:true;
+    updateDiscountHint();
+    document.getElementById('discountEditor').hidden=false;
+    document.getElementById('discountEditor').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function updateDiscountHint(){
+    const type=document.getElementById('discountType').value;
+    document.getElementById('discountValue').max=type==='percentage'?'100':'';
+    document.getElementById('discountValueHint').textContent=type==='percentage'?'20 means 20% off.':'5 means $5.00 off the normal price.';
+  }
+  document.getElementById('addDiscountBtn')?.addEventListener('click',()=>openDiscountEditor());
+  document.getElementById('cancelDiscountBtn')?.addEventListener('click',closeDiscountEditor);
+  document.getElementById('discountType')?.addEventListener('change',updateDiscountHint);
+  document.getElementById('discountForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const name=document.getElementById('discountName').value.trim();
+    const type=document.getElementById('discountType').value, value=Number(document.getElementById('discountValue').value);
+    const starts=fromLocalInput(document.getElementById('discountStarts').value), ends=fromLocalInput(document.getElementById('discountEnds').value);
+    const active=document.getElementById('discountActive').checked;
+    if(!name||!(value>0)||(type==='percentage'&&value>100)){showDiscountMessage('Please enter valid discount details.',true);return;}
+    if(starts&&ends&&new Date(ends)<=new Date(starts)){showDiscountMessage('End time must be after start time.',true);return;}
+    const offer=discountRows.length?null:null;
+    showDiscountMessage('Saving…');
+    const payload={offer_id:null,name,discount_type:type,discount_value:value,starts_at:starts,ends_at:ends,active};
+    const result=currentDiscountId?await client.from('commission_discounts').update(payload).eq('id',currentDiscountId):await client.from('commission_discounts').insert(payload);
+    if(result.error){showDiscountMessage(result.error.message,true);return;}
+    showDiscountMessage('Saved.'); closeDiscountEditor(); await loadDiscounts();
   });
 
   document.getElementById('paymentProfileForm').addEventListener('submit',async e=>{
@@ -529,6 +1319,7 @@
   });
 
   await loadPaymentProfile();
+  await loadDiscounts();
   await loadDashboard();
 })();
 </script>
