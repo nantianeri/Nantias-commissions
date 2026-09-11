@@ -15,7 +15,8 @@
   }
 
   function portfolioUrl(item){
-    return item?.image_url || '';
+    const raw=String(item?.image_url||'').trim();
+    return raw.replace(/^http:\/\//i,'https://');
   }
 
   function renderPortfolio(items){
