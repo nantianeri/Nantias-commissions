@@ -97,6 +97,7 @@ p{margin-top:0}.lead{color:var(--muted);max-width:680px;font-size:1.03rem}.muted
 .hero-intro{max-width:900px;margin:35px auto 0;text-align:center}.hero-kicker{justify-content:center}.hero-actions{justify-content:center}.hero-showcase{display:block;width:100%;max-width:1100px;margin:0 auto}
 .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
 
+.featured-carousel.is-loading{visibility:hidden}
 .featured-carousel{
   position:relative;overflow:hidden;border-radius:8px;border:1px solid var(--ink);background:linear-gradient(135deg,#f1e7ff,#e5f9ff);
   box-shadow:14px 14px 0 var(--lime);aspect-ratio:16/10;
@@ -811,4 +812,37 @@ a.social-button {
   .global-discount-inner{width:min(100% - 24px,1180px);align-items:flex-start}
   .global-discount-inner a{font-size:.78rem;margin-top:3px}
   .global-discount-inner span:not(.global-discount-pulse){font-size:.76rem}
+}
+
+
+/* Reviews / testimonials */
+.reviews-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
+.review-card{padding:24px;border:1px solid var(--line);border-radius:22px;background:rgba(255,253,248,.82);box-shadow:var(--shadow-small);min-height:190px;display:flex;flex-direction:column;justify-content:flex-start}
+.review-stars-display{font-size:1.35rem;letter-spacing:.08em;line-height:1;color:var(--pink)}
+.review-quote{font-size:1rem;line-height:1.7;margin:18px 0 0;color:var(--text)}
+.review-author{margin-top:auto;padding-top:20px;font-weight:800;color:var(--muted)}
+.review-instagram{font-size:.9rem;margin-left:4px;color:var(--text)}
+.portal-review{margin-top:18px}
+.review-stars{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.review-stars button{width:42px;height:44px;padding:0;border:0;background:transparent;box-shadow:none;color:transparent;font-size:2rem;line-height:1;cursor:pointer;position:relative;overflow:hidden}
+.review-stars button span{color:transparent;background:linear-gradient(90deg,var(--pink) var(--review-fill,0%),rgba(23,23,23,.18) var(--review-fill,0%));-webkit-background-clip:text;background-clip:text}
+.review-stars button:hover{transform:translateY(-1px)}
+.review-star-public{display:inline-block;color:transparent;background:linear-gradient(90deg,var(--pink) var(--review-fill,0%),rgba(23,23,23,.18) var(--review-fill,0%));-webkit-background-clip:text;background-clip:text}
+.review-existing{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.55);white-space:pre-wrap}
+@media(max-width:900px){.reviews-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.reviews-grid{grid-template-columns:1fr}.review-card{min-height:0}}
+
+/* V16.24.1 — Keep main-page social links readable on light backgrounds.
+   Footer social links intentionally remain white. */
+main .socials a{
+  color:var(--text) !important;
+  background:var(--surface) !important;
+  border-color:var(--ink) !important;
+  box-shadow:2px 2px 0 var(--ink) !important;
+}
+main .socials a:hover,
+main .socials a:focus-visible{
+  color:var(--text) !important;
+  background:var(--lime) !important;
+  border-color:var(--ink) !important;
 }
