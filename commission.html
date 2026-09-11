@@ -59,6 +59,26 @@
 <div class="portal-timeline" id="portalTimeline"></div>
 <div class="portal-next" id="portalNextStep"></div>
 <div class="portal-delivery" id="finalDeliveryCard" hidden></div>
+<div class="portal-review card" id="reviewCard" hidden>
+  <div class="eyebrow">Your experience</div>
+  <h3>Leave a Review</h3>
+  <p class="muted" id="reviewIntro" style="margin-top:6px">I would love to hear what you thought about the commission process.</p>
+  <div id="reviewFormArea" style="margin-top:18px">
+    <label>Rating</label>
+    <div class="review-stars" id="reviewStars" role="radiogroup" aria-label="Choose a rating from 1 to 5 stars">
+      <button type="button" data-star="1" aria-label="1 star"><span>★</span></button>
+      <button type="button" data-star="2" aria-label="2 stars"><span>★</span></button>
+      <button type="button" data-star="3" aria-label="3 stars"><span>★</span></button>
+      <button type="button" data-star="4" aria-label="4 stars"><span>★</span></button>
+      <button type="button" data-star="5" aria-label="5 stars"><span>★</span></button>
+    </div>
+    <div class="muted small" id="reviewRatingLabel" style="margin-top:5px">Choose a rating</div>
+    <label for="reviewText" style="margin-top:16px;display:block">Review <span class="muted small">(optional)</span></label>
+    <textarea id="reviewText" rows="5" maxlength="1000" placeholder="Tell me about your experience..."></textarea>
+    <button class="btn btn-primary" id="submitReviewBtn" type="button" style="margin-top:14px">Submit Review</button>
+    <div class="muted small" id="reviewMessage" style="margin-top:10px"></div>
+  </div>
+</div>
 <div class="card" hidden="" id="queuePositionCard" style="margin-top:16px;background:rgba(255,255,255,.02);text-align:center">
 <div class="muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em">Commission queue</div>
 <div id="queuePositionText" style="font-size:1.35rem;font-weight:800;margin-top:6px">—</div>
@@ -104,5 +124,5 @@
 </div>
 </div></section></main>
 <footer><div class="container"><strong data-content-key="global.brand">NANTIA</strong><br/>Character Artist &amp; Illustrator<br/><small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small></div></footer>
-<script src="js/content.js?v=8.0"></script><script src="js/client-portal.js?v=16.19"></script>
+<script src="js/content.js?v=8.0"></script><script src="js/client-portal.js?v=16.24"></script>
 </body></html>

@@ -61,6 +61,38 @@
   <div id="siteContentEditor" style="margin-top:20px"></div>
 </div>
 
+
+<div class="card" style="margin-top:20px" id="emailTemplatesCard">
+  <details id="emailTemplatesDetails" open>
+    <summary class="admin-collapsible-summary">
+      <div>
+        <h3>Email Templates</h3>
+        <p class="muted">Edit every automated email directly from the Admin Panel. Changes are saved in Supabase and used by the email worker.</p>
+      </div>
+      <span class="collapsible-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div id="emailTemplatesMessage" class="muted" style="margin-top:12px"></div>
+    <div class="card" style="margin-top:16px;background:rgba(255,255,255,.02)">
+      <strong>Available variables</strong>
+      <p class="muted small" style="margin:7px 0 0">You can place these anywhere in a subject or message. The system automatically replaces them when sending.</p>
+      <div id="emailVariablesList" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px"></div>
+      <p class="muted small" style="margin:10px 0 0"><code>{{portal_link}}</code> creates an Open Client Portal button. <code>{{final_artwork_link}}</code> creates an Open final artwork button.</p><p class="muted small" style="margin:7px 0 0">Each client email also has a <strong>Show client portal link in this email</strong> option. Turning it off removes the portal button from that email without affecting the client's ability to use the portal.</p>
+    </div>
+    <div id="emailTemplateList" style="display:grid;gap:12px;margin-top:16px"></div>
+  </details>
+</div>
+
+<div class="card" style="margin-top:20px" id="reviewsManagementCard">
+  <details id="reviewsManagementDetails" open>
+    <summary class="admin-collapsible-summary">
+      <div><h3>Reviews</h3><p class="muted">Review client testimonials before they appear publicly on the website.</p></div>
+      <span class="collapsible-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div id="reviewsAdminMessage" class="muted" style="margin-top:12px"></div>
+    <div id="reviewsAdminList" style="display:grid;gap:12px;margin-top:16px"></div>
+  </details>
+</div>
+
 <div class="card" style="margin-top:20px" id="portfolioManagementCard">
   <details id="portfolioManagementDetails">
     <summary class="admin-collapsible-summary">
@@ -342,8 +374,36 @@
     await loadCatalog();
     await loadRequests();
     await loadSiteContent();
+    await loadEmailTemplates();
+    await loadReviewsAdmin();
     await loadPortfolioAdmin();
   }
+
+  async function loadReviewsAdmin(){
+    const list=document.getElementById('reviewsAdminList'), msg=document.getElementById('reviewsAdminMessage');
+    if(!list)return;
+    const {data,error}=await client.from('commission_reviews').select('id,request_id,rating,review_text,instagram_username,status,created_at').order('created_at',{ascending:false});
+    if(error){if(msg)msg.textContent=error.message;return;}
+    if(!data?.length){list.innerHTML='<div class="muted">No reviews yet.</div>';return;}
+    list.innerHTML=data.map(r=>`<div class="catalog-admin-row" style="align-items:flex-start"><div style="min-width:0"><div class="review-stars-display">${adminReviewStars(r.rating)}</div><strong>—${esc(String(r.instagram_username||'').replace(/^@/,''))}</strong><div class="muted small">${esc(r.status)} · ${esc(fmtDate(r.created_at))}</div>${r.review_text?`<div style="white-space:pre-wrap;margin-top:8px">${esc(r.review_text)}</div>`:'<div class="muted small" style="margin-top:8px">No written comment.</div>'}</div><div class="catalog-admin-actions">${r.status!=='PUBLISHED'?`<button type="button" class="btn btn-primary" data-review-approve="${r.id}">Approve</button>`:''}${r.status!=='HIDDEN'?`<button type="button" class="btn" data-review-hide="${r.id}">Hide</button>`:''}<button type="button" class="btn danger" data-review-delete="${r.id}">Delete</button></div></div>`).join('');
+  }
+  function adminReviewStars(v){const n=Number(v||0);let out='';for(let i=1;i<=5;i++){const fill=Math.max(0,Math.min(1,n-(i-1)))*100;out+=`<span class="review-star-public" style="--review-fill:${fill}%">★</span>`;}return out;}
+  async function reviewAction(id,action){
+    const msg=document.getElementById('reviewsAdminMessage');
+    if(action==='delete'&&!confirm('Delete this review? This cannot be undone.'))return;
+    let result;
+    if(action==='delete') result=await client.from('commission_reviews').delete().eq('id',id);
+    else result=await client.from('commission_reviews').update({status:action==='approve'?'PUBLISHED':'HIDDEN'}).eq('id',id);
+    if(result.error){if(msg){msg.textContent=result.error.message;msg.style.color='var(--pink)';}return;}
+    if(msg){msg.textContent=action==='approve'?'Review approved.':action==='hide'?'Review hidden.':'Review deleted.';msg.style.color='';}
+    await loadReviewsAdmin();
+  }
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('[data-review-approve]'),h=e.target.closest('[data-review-hide]'),d=e.target.closest('[data-review-delete]');
+    if(a)reviewAction(a.dataset.reviewApprove,'approve');
+    else if(h)reviewAction(h.dataset.reviewHide,'hide');
+    else if(d)reviewAction(d.dataset.reviewDelete,'delete');
+  });
 
   let siteContentRows = [];
 
@@ -408,6 +468,98 @@
     button.disabled=false;
     button.textContent='Saved';
     setTimeout(()=>{ if(button.isConnected) button.textContent=originalText; }, 1200);
+  }
+
+  const EMAIL_TEMPLATE_LABELS = {
+    CLIENT_REQUEST_RECEIVED:'New Commission Request — Client', ADMIN_NEW_REQUEST:'New Commission Request — Admin',
+    CLIENT_ACCEPTED:'Commission Accepted', CLIENT_DECLINED:'Commission Declined',
+    ADMIN_PAYMENT_CLAIMED:'Payment Claimed — Admin', CLIENT_PAYMENT_CLAIMED:'Payment Claimed — Client',
+    CLIENT_PAYMENT_REJECTED:'Payment Rejected', CLIENT_PAYMENT_CONFIRMED:'Payment Confirmed',
+    CLIENT_IN_PROGRESS:'Commission In Progress', CLIENT_COMPLETED:'Commission Completed',
+    CLIENT_UPDATE:'Commission Update', CLIENT_FINAL_ARTWORK:'Final Artwork Delivered'
+  };
+  const EMAIL_VARIABLES = ['client_name','request_number','final_price','estimated_price','commission_type','format','character_count','usage_type','background','custom_complexity','urgent','requested_deadline','deadline_reason','description','preferred_mood_lighting','additional_information','email','instagram_username','decline_reason','decline_message','payment_instructions','payment_rejection_message','payment_claimed_at','paid_at','accepted_at','completed_at','update_title','update_message','original_name','portal_link','final_artwork_link'];
+  const EMAIL_DEFAULTS = {
+    CLIENT_REQUEST_RECEIVED:{subject:'Request received — #{{request_number}}',body:'Thank you for submitting your commission request. Your request has been received and is now waiting for review.\n\nRequest number: #{{request_number}}\nCommission: {{commission_type}}\n\nPlease keep your request number for future reference.'},
+    ADMIN_NEW_REQUEST:{subject:'New commission request — #{{request_number}}',body:'A new commission request has been submitted.\n\nRequest number: #{{request_number}}\nClient: {{client_name}}\nClient email: {{email}}\nInstagram: {{instagram_username}}\nCommission: {{commission_type}}\nFormat: {{format}}\nUsage: {{usage_type}}'},
+    CLIENT_ACCEPTED:{subject:'Your commission request has been accepted — #{{request_number}}',body:'Good news! Your commission request has been accepted.\n\nRequest number: #{{request_number}}\nFinal price: {{final_price}}\n\nPlease enter your private commission portal below to view the payment details and instructions for your commission.\n\n{{portal_link}}'},
+    CLIENT_DECLINED:{subject:'Update on your commission request — #{{request_number}}',body:'Your commission request was not accepted at this time.\n\nMessage from Nantia:\n{{decline_message}}\n\nRequest number: #{{request_number}}'},
+    ADMIN_PAYMENT_CLAIMED:{subject:'Payment claimed — #{{request_number}}',body:'A client has submitted a payment claim and it is ready for manual verification.\n\nRequest number: #{{request_number}}\nClient: {{client_name}}\nClient email: {{email}}\nInstagram: {{instagram_username}}\nClaimed at: {{payment_claimed_at}}\nFinal price: {{final_price}}'},
+    CLIENT_PAYMENT_CLAIMED:{subject:'Payment claim received — #{{request_number}}',body:'Your payment claim has been received. The payment will now be checked manually.\n\nRequest number: #{{request_number}}\n\nPlease do not submit another claim unless you are asked to do so.'},
+    CLIENT_PAYMENT_REJECTED:{subject:'Payment claim needs attention — #{{request_number}}',body:'The payment claim for your commission could not be verified.\n\nMessage from Nantia:\n{{payment_rejection_message}}\n\nRequest number: #{{request_number}}\n\nYour payment instructions remain available in the client portal so you can correct the issue and try again.'},
+    CLIENT_PAYMENT_CONFIRMED:{subject:'Payment confirmed — #{{request_number}}',body:'Your payment has been verified successfully. Your commission is now ready to move forward.\n\nRequest number: #{{request_number}}\nAmount: {{final_price}}'},
+    CLIENT_IN_PROGRESS:{subject:'Your commission is now in progress — #{{request_number}}',body:'Your payment has been confirmed and I have started working on your commission.\n\nRequest number: #{{request_number}}\n\nFurther communication and WIP details can continue through your agreed contact channel.'},
+    CLIENT_COMPLETED:{subject:'Your commission is complete — #{{request_number}}',body:'Your commission has been marked as completed.\n\nRequest number: #{{request_number}}\n\nPlease check your client portal for the final delivery information.'},
+    CLIENT_UPDATE:{subject:'{{update_title}} — commission #{{request_number}}',body:'I have posted a new update for your commission.\n\nRequest number: #{{request_number}}\nUpdate: {{update_title}}\n\n{{update_message}}'},
+    CLIENT_FINAL_ARTWORK:{subject:'Your final artwork is ready — #{{request_number}}',body:'Your final artwork is ready. Use the secure delivery link below to access the original file.\n\nRequest number: #{{request_number}}\nFile: {{original_name}}\n\n{{final_artwork_link}}'}
+  };
+  let emailTemplateRows=[];
+  function showEmailTemplatesMessage(text,error=false){const el=document.getElementById('emailTemplatesMessage');if(el){el.textContent=text||'';el.style.color=error?'var(--pink)':'';}}
+  function sampleEmailText(text){
+    const sample={client_name:'Nantia',request_number:'24',final_price:'$45.00',estimated_price:'$40.00',commission_type:'Character Illustration',format:'PNG',character_count:'1',usage_type:'personal',background:'Simple',custom_complexity:'',urgent:'false',requested_deadline:'2026-10-01',deadline_reason:'',description:'Sample commission description',preferred_mood_lighting:'Warm',additional_information:'',email:'client@example.com',instagram_username:'@client',decline_reason:'',decline_message:'Thank you for your request. I am unable to accept it at this time.',payment_instructions:'Please use the payment details in your portal.',payment_rejection_message:'Please check the payment details and try again.',payment_claimed_at:'2026-09-10 12:00',paid_at:'2026-09-10 13:00',accepted_at:'2026-09-10 11:00',completed_at:'2026-09-10 14:00',update_title:'Sketch update',update_message:'Your sketch is ready for review.',original_name:'final-artwork.png',portal_link:'[Client Portal button]',final_artwork_link:'[Final Artwork button]'};
+    return String(text||'').replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g,(_,k)=>sample[k]??`{{${k}}}`);
+  }
+  function renderEmailTemplates(){
+    const vars=document.getElementById('emailVariablesList'); if(vars) vars.innerHTML=EMAIL_VARIABLES.map(v=>`<code style="padding:5px 8px;border:1px solid var(--line);border-radius:8px">{{${v}}}</code>`).join('');
+    const list=document.getElementById('emailTemplateList'); if(!list)return;
+    const rows=Object.keys(EMAIL_TEMPLATE_LABELS).map(key=>emailTemplateRows.find(r=>r.template_key===key)||{template_key:key,label:EMAIL_TEMPLATE_LABELS[key],subject:EMAIL_DEFAULTS[key].subject,body:EMAIL_DEFAULTS[key].body,enabled:true});
+    list.innerHTML=rows.map(r=>{
+      const hasPortal=String(r.body||'').includes('{{portal_link}}');
+      return `<details class="email-template-editor" data-email-key="${esc(r.template_key)}" style="border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--surface-2)">
+      <summary style="cursor:pointer"><strong>${esc(r.label||EMAIL_TEMPLATE_LABELS[r.template_key])}</strong><span class="muted small" style="margin-left:8px">${r.enabled===false?'Disabled':'Enabled'}</span></summary>
+      <div style="display:grid;gap:10px;margin-top:16px">
+        <label>Subject</label><input data-email-subject value="${esc(r.subject||'')}">
+        <label>Message</label><textarea data-email-body rows="10">${esc(r.body||'')}</textarea>
+        <label class="check"><input type="checkbox" data-email-portal ${hasPortal?'checked':''}><span>Show client portal link in this email</span></label>
+        <p class="muted small" style="margin:-4px 0 2px">When enabled, <code>{{portal_link}}</code> is included in the message. When disabled, the portal link is removed from this email only.</p>
+        <label class="check"><input type="checkbox" data-email-enabled ${r.enabled!==false?'checked':''}><span>Send this email automatically</span></label>
+        <div class="card" style="margin:0;background:rgba(255,255,255,.03)"><strong>Preview</strong><div class="muted small" data-email-preview-subject style="margin-top:7px"></div><div data-email-preview-body style="white-space:pre-wrap;margin-top:8px;line-height:1.6"></div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px"><button type="button" class="btn btn-primary" data-email-save>Save Template</button><button type="button" class="btn" data-email-reset>Restore Default</button><span class="muted small" data-email-status style="align-self:center"></span></div>
+      </div></details>`;
+    }).join('');
+    list.querySelectorAll('.email-template-editor').forEach(box=>{
+      const subject=box.querySelector('[data-email-subject]'),body=box.querySelector('[data-email-body]'),portal=box.querySelector('[data-email-portal]'),previewS=box.querySelector('[data-email-preview-subject]'),previewB=box.querySelector('[data-email-preview-body]');
+      const syncPortalMarker=()=>{
+        const marker='{{portal_link}}';
+        const has=body.value.includes(marker);
+        portal.checked=has;
+      };
+      const updatePreview=()=>{previewS.textContent='Subject: '+sampleEmailText(subject.value);previewB.textContent=sampleEmailText(body.value)};
+      subject.addEventListener('input',updatePreview);body.addEventListener('input',()=>{syncPortalMarker();updatePreview();});
+      portal.addEventListener('change',()=>{
+        const marker='{{portal_link}}';
+        if(portal.checked){
+          if(!body.value.includes(marker)){
+            body.value=body.value.replace(/\s*$/, '')+'\n\n'+marker;
+          }
+        }else{
+          body.value=body.value.replaceAll(marker,'').replace(/\n{3,}/g,'\n\n').replace(/\n\s*$/, '');
+        }
+        updatePreview();
+      });
+      syncPortalMarker();updatePreview();
+      box.querySelector('[data-email-save]').addEventListener('click',async()=>{
+        const key=box.dataset.emailKey,button=box.querySelector('[data-email-save]'),status=box.querySelector('[data-email-status]');button.disabled=true;button.textContent='Saving…';
+        const payload={template_key:key,label:EMAIL_TEMPLATE_LABELS[key],subject:subject.value.trim(),body:body.value,enabled:box.querySelector('[data-email-enabled]').checked};
+        if(!payload.subject||!payload.body.trim()){status.textContent='Subject and message are required.';status.style.color='var(--pink)';button.disabled=false;button.textContent='Save Template';return;}
+        const {error}=await client.from('email_templates').upsert(payload,{onConflict:'template_key'});
+        if(error){status.textContent=error.message;status.style.color='var(--pink)';}else{status.textContent='Saved.';status.style.color='';await loadEmailTemplates();}
+        button.disabled=false;button.textContent='Save Template';
+      });
+      box.querySelector('[data-email-reset]').addEventListener('click',async()=>{
+        const key=box.dataset.emailKey;if(!confirm(`Restore the default message for ${EMAIL_TEMPLATE_LABELS[key]}?`))return;
+        const def=EMAIL_DEFAULTS[key],status=box.querySelector('[data-email-status]');
+        subject.value=def.subject;body.value=def.body;box.querySelector('[data-email-enabled]').checked=true;syncPortalMarker();updatePreview();
+        const {error}=await client.from('email_templates').upsert({template_key:key,label:EMAIL_TEMPLATE_LABELS[key],subject:def.subject,body:def.body,enabled:true},{onConflict:'template_key'});
+        status.textContent=error?error.message:'Default restored.';status.style.color=error?'var(--pink)':'';if(!error)await loadEmailTemplates();
+      });
+    });
+  }
+  async function loadEmailTemplates(){
+    showEmailTemplatesMessage('Loading email templates…');
+    const {data,error}=await client.from('email_templates').select('*').order('template_key');
+    if(error){showEmailTemplatesMessage('Email templates are not set up yet. Run V16.23_ADMIN_EMAIL_TEMPLATES.sql in Supabase SQL Editor.',true);return;}
+    emailTemplateRows=data||[];renderEmailTemplates();showEmailTemplatesMessage(`${Object.keys(EMAIL_TEMPLATE_LABELS).length} email templates available.`);
   }
 
   // V9.2 Portfolio & Featured Artwork Management
