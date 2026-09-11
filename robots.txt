@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nantia-art.com/sitemap.xml
