@@ -200,6 +200,7 @@
       <span id="requestQuickStatus" class="status-pill"></span>
       <button id="requestMarkInProgressBtn" class="btn btn-primary" type="button" hidden>Start Commission</button>
       <button id="requestMarkCompletedBtn" class="btn" type="button" hidden>Mark Completed</button>
+      <button id="deleteRequestBtn" class="btn danger" type="button">Delete Request</button>
     </div>
     <div style="margin-top:22px">
       <h4>Reference files</h4>
@@ -1088,9 +1089,10 @@
     });
     list.innerHTML=filtered.map(r=>`<div class="catalog-admin-row request-row">
       <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · ${esc(statusLabel(r.status))} · ${fmtMoney(r.final_price ?? r.estimated_price)} · ${esc(fmtDate(r.created_at))}</div></div>
-      <div class="catalog-admin-actions"><button type="button" class="btn" data-open-request="${r.id}">Open</button></div>
+      <div class="catalog-admin-actions"><button type="button" class="btn" data-open-request="${r.id}">Open</button><button type="button" class="btn danger" data-delete-request="${r.id}">Delete</button></div>
     </div>`).join('') || '<p class="muted">No requests match the current search/filter.</p>';
     list.querySelectorAll('[data-open-request]').forEach(b=>b.addEventListener('click',()=>openRequest(requestRows.find(r=>r.id===b.dataset.openRequest))));
+    list.querySelectorAll('[data-delete-request]').forEach(b=>b.addEventListener('click',()=>deleteRequest(requestRows.find(r=>r.id===b.dataset.deleteRequest))));
     showRequestsMessage(`${filtered.length} of ${requestRows.length} request${requestRows.length===1?'':'s'} shown.`);
   }
 
@@ -1120,6 +1122,44 @@
     </div>`).join('');
     box.querySelectorAll('[data-open-archive-request]').forEach(b=>b.addEventListener('click',()=>openRequest(requestRows.find(r=>r.id===b.dataset.openArchiveRequest),true)));
     showArchiveMessage(`${archived.length} archived commission${archived.length===1?'':'s'} shown.`);
+  }
+
+  async function deleteRequest(r){
+    if(!r)return;
+    const label=`Request #${r.request_number}`;
+    const first=confirm(`${label} will be permanently deleted.\n\nUse this only for a test request. Real client commissions should be kept and archived, not deleted.\n\nContinue?`);
+    if(!first)return;
+    const second=prompt(`Final confirmation. Type DELETE to permanently remove ${label}.`);
+    if(second!=='DELETE')return;
+
+    showRequestsMessage(`Deleting ${label}…`);
+    try{
+      const {data:files,error:filesError}=await client.from('request_files').select('storage_path').eq('request_id',r.id);
+      if(filesError)throw filesError;
+      const referencePaths=(files||[]).map(x=>x.storage_path).filter(Boolean);
+      if(referencePaths.length){
+        const {error}=await client.storage.from('commission-references').remove(referencePaths);
+        if(error)throw error;
+      }
+
+      const {data:delivery,error:deliveryError}=await client.from('commission_deliveries').select('preview_path').eq('request_id',r.id).maybeSingle();
+      if(deliveryError)throw deliveryError;
+      if(delivery?.preview_path){
+        const {error}=await client.storage.from('commission-previews').remove([delivery.preview_path]);
+        if(error)throw error;
+      }
+
+      const {error:deleteError}=await client.from('commission_requests').delete().eq('id',r.id);
+      if(deleteError)throw deleteError;
+      if(currentRequestId===r.id){
+        currentRequestId=null;
+        document.getElementById('requestEditor').hidden=true;
+      }
+      await loadRequests();
+      showRequestsMessage(`${label} deleted successfully.`);
+    }catch(err){
+      showRequestsMessage(err?.message||'Unable to delete request.',true);
+    }
   }
 
   async function loadRequests() {
@@ -1467,6 +1507,7 @@
     msg.textContent='Payment profile saved.';msg.style.color='';
   });
 
+  document.getElementById('deleteRequestBtn').addEventListener('click',()=>deleteRequest(requestRows.find(r=>r.id===currentRequestId)));
   document.getElementById('refreshRequestsBtn').addEventListener('click',loadRequests);
   document.getElementById('refreshQueueBtn').addEventListener('click',loadRequests);
   document.getElementById('closeRequestBtn').addEventListener('click',()=>{
