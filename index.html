@@ -3,6 +3,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
+<link rel="icon" href="images/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title data-content-key="home.title">Nantia — Artist &amp; Illustrator</title>
@@ -23,9 +25,38 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Nantia's Commissions",
-      "url": "https://nantia-art.com/"
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://nantia-art.com/#website",
+          "name": "Nantia's Art",
+          "alternateName": "Nantia's Commissions",
+          "url": "https://nantia-art.com/"
+        },
+        {
+          "@type": "Person",
+          "@id": "https://nantia-art.com/#person",
+          "name": "Nantia Neri",
+          "alternateName": ["Nantia", "Nantia's Art"],
+          "url": "https://nantia-art.com/",
+          "image": "https://nantia-art.com/images/favicon.png",
+          "jobTitle": "Artist & Illustrator",
+          "sameAs": [
+            "https://www.instagram.com/nantia.art/"
+          ]
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://nantia-art.com/#organization",
+          "name": "Nantia",
+          "alternateName": "Nantia's Art",
+          "url": "https://nantia-art.com/",
+          "logo": "https://nantia-art.com/images/favicon.png",
+          "sameAs": [
+            "https://www.instagram.com/nantia.art/"
+          ]
+        }
+      ]
     }
     </script>
 </head>
