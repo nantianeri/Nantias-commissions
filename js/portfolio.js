@@ -39,12 +39,17 @@
     }).join('');
   }
 
+  function revealFeatured(carousel){
+    carousel?.classList.remove('is-loading');
+  }
+
   function renderFeatured(items){
     const carousel=document.querySelector('[data-featured-carousel]');
     if(!carousel)return;
     const usable=items.slice(0,3);
     if(!usable.length){
       carousel.innerHTML='<div class="featured-empty"><strong>No featured artwork yet.</strong><small>Add up to 3 featured pieces from the admin dashboard.</small></div>';
+      revealFeatured(carousel);
       return;
     }
     carousel.innerHTML=`<div class="featured-track">${usable.map((item,i)=>`<a aria-label="View featured artwork ${i+1}" class="featured-slide ${i===0?'is-active':''}" href="portfolio.html">
@@ -54,6 +59,14 @@
     <button aria-label="Next featured artwork" class="featured-arrow featured-next" type="button">›</button>
     <div aria-label="Featured artwork navigation" class="featured-dots">${usable.map((_,i)=>`<button aria-label="Show featured artwork ${i+1}" class="featured-dot ${i===0?'is-active':''}" type="button"></button>`).join('')}</div>`;
     initFeaturedCarousel();
+    const firstImage=carousel.querySelector('.featured-slide.is-active img');
+    if(!firstImage){ revealFeatured(carousel); return; }
+    if(firstImage.complete && firstImage.naturalWidth>0){ revealFeatured(carousel); return; }
+    let revealed=false;
+    const done=()=>{if(revealed)return;revealed=true;revealFeatured(carousel);};
+    firstImage.addEventListener('load',done,{once:true});
+    firstImage.addEventListener('error',done,{once:true});
+    setTimeout(done,5000);
   }
 
   function initFeaturedCarousel(){
@@ -112,7 +125,14 @@
       c.from('portfolio_items').select('*').eq('active',true).order('sort_order').order('created_at'),
       c.from('portfolio_items').select('*').eq('active',true).eq('featured',true).order('sort_order').order('created_at')
     ]);
-    if(allError || featuredError)return;
+    if(allError || featuredError){
+      const carousel=document.querySelector('[data-featured-carousel]');
+      if(carousel){
+        carousel.innerHTML='<div class="featured-empty"><strong>Featured artwork is unavailable right now.</strong><small>Please try again in a moment.</small></div>';
+        revealFeatured(carousel);
+      }
+      return;
+    }
     if(document.querySelector('[data-portfolio-grid]'))renderPortfolio(all||[]);
     if(document.querySelector('[data-featured-carousel]'))renderFeatured(featured||[]);
   }
