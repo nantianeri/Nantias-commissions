@@ -1,4 +1,29 @@
 /* Nantia's Commissions V7.3 — real request submission via secure Supabase RPC */
+const SUPPORTED_COUNTRIES = [
+  "Australia","Austria","Belgium","Benin","Brazil","Cameroon","Canada","Central African Republic","Chad","Côte d’Ivoire","Cyprus","Czech Republic","Denmark","Equatorial Guinea","Finland","France","Gabon","Germany","Ghana","Greece","Ireland","Israel","Italy","Japan","Latvia","Liechtenstein","Lithuania","Malta","Netherlands","New Zealand","Nigeria","Norway","Poland","Portugal","Republic of the Congo","Romania","Senegal","Singapore","Slovakia","Spain","Sweden","United Arab Emirates","United Kingdom","United States"
+];
+function initCountryPicker(){
+  const picker=document.getElementById('countryPicker'), button=document.getElementById('countryButton'), menu=document.getElementById('countryMenu'), search=document.getElementById('countrySearch'), options=document.getElementById('countryOptions'), empty=document.getElementById('countryEmpty'), hidden=document.getElementById('country');
+  if(!picker||!button||!menu||!search||!options||!hidden)return null;
+  const render=(query='')=>{
+    const q=String(query).trim().toLowerCase();
+    const rows=SUPPORTED_COUNTRIES.filter(c=>!q||c.toLowerCase().includes(q));
+    options.innerHTML=rows.map(c=>`<button type="button" class="country-picker-option" role="option" aria-selected="${hidden.value===c?'true':'false'}" data-country="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('');
+    empty.hidden=rows.length!==0;
+    options.querySelectorAll('[data-country]').forEach(option=>option.addEventListener('click',()=>{
+      const value=option.dataset.country||''; hidden.value=value; button.firstChild.textContent=value+' '; button.classList.add('is-selected'); close();
+    }));
+  };
+  const open=()=>{menu.hidden=false;button.setAttribute('aria-expanded','true');render(search.value);requestAnimationFrame(()=>search.focus())};
+  const close=()=>{menu.hidden=true;button.setAttribute('aria-expanded','false')};
+  button.addEventListener('click',()=>menu.hidden?open():close());
+  search.addEventListener('input',()=>render(search.value));
+  document.addEventListener('click',e=>{if(!picker.contains(e.target))close()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+  render();
+  return {getValue:()=>hidden.value,focus:open};
+}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 const COMMERCIAL_RATE=1.0;
 const URGENT_FEE=15;
 function money(n){return "$"+Number(n||0).toFixed(2)}
@@ -26,6 +51,7 @@ function applyAvailability(isOpen){document.querySelectorAll('[data-commission-o
 function renderHomepagePrices(offers,discounts=[]){const map={bust:'Bust Up',half:'Half Body',full:'Full Body'};document.querySelectorAll('[data-home-format]').forEach(el=>{const key=el.dataset.homeFormat,offer=findFormatOffer(offers,key),label=map[key]||key;el.innerHTML=offer&&offer.base_price!=null?`${label} · ${priceMarkup(offer.base_price,activeDiscountForOffer(offer,discounts))}`:`${label} · Estimate`})}
 
 async function initRequestPage(client,settings,offers,discounts=[]){
+ const countryPicker=initCountryPicker();
  const form=document.querySelector('#commissionForm');if(!form)return;
  const q=getParams();
  const type=document.querySelector('#commissionType'),fmt=document.querySelector('#format'),formatLabel=document.querySelector('#formatLabel'),selectedNote=document.querySelector('#selectedFormatNote');
@@ -55,8 +81,77 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  if(commercial)commercial.addEventListener('change',()=>{if(usage)usage.value=commercial.checked?'commercial':'personal';update()});
  if(urgent)urgent.addEventListener('change',()=>{if(urgentBox)urgentBox.hidden=!urgent.checked;if(deadline)deadline.required=urgent.checked;update()});
  update();
+   // V16.34 — character references are required, limited to 5 images, and max 2 MB each.
+   // Validation happens before the request is created, so invalid/missing required references block submission.
+   const characterReferenceInput=document.querySelector('#characterReferences');
+   const additionalReferenceInput=document.querySelector('#additionalReferences');
+   const characterReferenceList=document.querySelector('#characterReferenceList');
+   const MAX_CHARACTER_REFERENCES=5;
+   const MAX_REFERENCE_BYTES=2*1024*1024;
+   let characterReferenceFiles=[];
+
+   const formatFileSize=(bytes)=>{
+     const n=Number(bytes||0);
+     if(n<1024)return `${n} B`;
+     if(n<1024*1024)return `${(n/1024).toFixed(1)} KB`;
+     return `${(n/(1024*1024)).toFixed(2)} MB`;
+   };
+   const fileIsValid=(file)=>!!file&&file.type?.startsWith('image/')&&file.size<=MAX_REFERENCE_BYTES;
+   const syncCharacterInput=()=>{
+     if(!characterReferenceInput)return;
+     try{
+       const dt=new DataTransfer();
+       characterReferenceFiles.forEach(item=>{if(item.file)dt.items.add(item.file)});
+       characterReferenceInput.files=dt.files;
+     }catch(err){console.warn('Could not sync character reference input:',err)}
+   };
+   const renderCharacterReferences=()=>{
+     if(!characterReferenceList)return;
+     characterReferenceList.innerHTML=characterReferenceFiles.map((item,index)=>{
+       const file=item.file;
+       const invalid=!fileIsValid(file);
+       const reason=!file?.type?.startsWith('image/')?'Only image files are allowed.':file?.size>MAX_REFERENCE_BYTES?'Too large. Maximum 2 MB.':'';
+       return `<div class="reference-file-item${invalid?' invalid':''}" data-ref-index="${index}">
+         <div class="reference-file-meta">
+           <span class="reference-file-name">${escapeHtml(file?.name||'Reference image')}</span>
+           <span class="reference-file-size">${formatFileSize(file?.size||0)}${invalid?` · <span class="reference-file-status">${escapeHtml(reason)}</span>`:' · Ready'}</span>
+         </div>
+         <div class="reference-file-actions">
+           ${invalid?`<button type="button" class="reference-replace" data-replace-ref="${index}">Replace</button>`:''}
+           <button type="button" class="reference-remove" aria-label="Remove ${escapeHtml(file?.name||'reference image')}" data-remove-ref="${index}">Remove</button>
+         </div>
+       </div>`;
+     }).join('');
+     characterReferenceList.querySelectorAll('[data-remove-ref]').forEach(btn=>btn.addEventListener('click',()=>{
+       const index=Number(btn.dataset.removeRef);characterReferenceFiles.splice(index,1);syncCharacterInput();renderCharacterReferences();
+     }));
+     characterReferenceList.querySelectorAll('[data-replace-ref]').forEach(btn=>btn.addEventListener('click',()=>{
+       const index=Number(btn.dataset.replaceRef);
+       const picker=document.createElement('input');picker.type='file';picker.accept='image/*';
+       picker.addEventListener('change',()=>{
+         const file=picker.files?.[0];if(!file)return;
+         characterReferenceFiles[index]={file};syncCharacterInput();renderCharacterReferences();
+       });
+       picker.click();
+     }));
+   };
+   if(characterReferenceInput){
+     characterReferenceInput.addEventListener('change',()=>{
+       const incoming=Array.from(characterReferenceInput.files||[]);
+       const room=Math.max(0,MAX_CHARACTER_REFERENCES-characterReferenceFiles.length);
+       const accepted=incoming.slice(0,room);
+       characterReferenceFiles.push(...accepted.map(file=>({file})));
+       if(incoming.length>room)alert(`You can upload a maximum of ${MAX_CHARACTER_REFERENCES} character reference images. The extra file(s) were not added.`);
+       syncCharacterInput();renderCharacterReferences();
+     });
+   }
+   renderCharacterReferences();
+
+
  form.addEventListener('submit',async e=>{
    e.preventDefault();
+   const country=countryPicker?.getValue()||'';
+   if(!country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
    const submit=form.querySelector('button[type="submit"]');
    if(!settings||settings.commissions_open===false){location.href='closed.html';return}
    if(!client){alert('The commission system is temporarily unavailable. Please try again later.');return}
@@ -81,17 +176,30 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    if(!selectedOffer){alert('The selected commission is no longer available. Please return to the Commissions page and try again.');return}
    const base=selectedOffer.base_price!=null?Number(selectedOffer.base_price):Number(baseOffers[finalFormat]?.base_price||0);const discount=activeDiscountForOffer(selectedOffer,discounts);const effectiveBase=discountedPrice(base,discount);
    const n=Math.max(1,+chars.value||1);const extraRate=Number(settings?.extra_character_rate??0.70);const commercialRate=Number(settings?.commercial_rate??COMMERCIAL_RATE);const urgentFee=urgent?.checked?Number(settings?.urgent_fee??URGENT_FEE):0;const complexity=type.value==='Custom Illustration'?({simple:0,moderate:15,detailed:30,'highly-detailed':50}[custom?.value||'simple']||0):0;const extras=(effectiveBase*extraRate*(n-1))+complexity;const subtotal=effectiveBase+extras;const comm=commercial?.checked?subtotal*commercialRate:0;const estimated=subtotal+comm+urgentFee;
+   // Required character references must be present and every selected file must be valid.
+   if(characterReferenceFiles.length<1){
+     alert('Please upload at least 1 character reference image before submitting your request.');
+     characterReferenceInput?.focus();
+     return;
+   }
+   const invalidCharacterReferences=characterReferenceFiles.filter(item=>!fileIsValid(item.file));
+   if(invalidCharacterReferences.length){
+     alert('Please replace or remove every invalid character reference image before submitting. Each file must be an image no larger than 2 MB.');
+     return;
+   }
+   syncCharacterInput();
+
    submit.disabled=true;submit.textContent='Submitting…';
-   const {data:requestNumber,error}=await client.rpc('create_commission_request_v14',{p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:bg?.value||null,p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'simple'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:additional||null,p_estimated_price:estimated});
+   const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_33',{p_country:country,p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:bg?.value||null,p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'simple'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:additional||null,p_estimated_price:estimated});
    if(error){console.error(error);alert('I could not submit your request. Please try again.');submit.disabled=false;submit.textContent='Submit Commission Request';return}
 
-   // V7.6.2 — upload reference images after the request exists, then securely attach them to that request.
-   const uploadReferenceFiles = async (inputId, fileType) => {
+   const uploadReferenceFiles = async (inputId, fileType, sourceFiles=null) => {
      const input=document.querySelector(inputId);
-     const files=Array.from(input?.files||[]);
+     const files=sourceFiles||Array.from(input?.files||[]);
      const uploaded=[];
      for(const file of files){
        if(!file.type || !file.type.startsWith('image/')) throw new Error('Only image files can be uploaded as references.');
+       if(file.size>MAX_REFERENCE_BYTES) throw new Error(`Reference image "${file.name}" is larger than 2 MB.`);
        const safeName=(file.name||'reference').replace(/[^a-zA-Z0-9._-]/g,'_');
        const unique=(window.crypto?.randomUUID?.()||Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
        const path=`${requestNumber}/${unique}_${safeName}`;
@@ -105,7 +213,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    try{
      submit.textContent='Uploading references…';
      const files=[
-       ...(await uploadReferenceFiles('#characterReferences','character_reference')),
+       ...(await uploadReferenceFiles('#characterReferences','character_reference',characterReferenceFiles.map(item=>item.file))),
        ...(await uploadReferenceFiles('#additionalReferences','additional_reference'))
      ];
      if(files.length){
