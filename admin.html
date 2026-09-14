@@ -479,10 +479,10 @@
     CLIENT_IN_PROGRESS:'Commission In Progress', CLIENT_COMPLETED:'Commission Completed',
     CLIENT_UPDATE:'Commission Update', CLIENT_FINAL_ARTWORK:'Final Artwork Delivered'
   };
-  const EMAIL_VARIABLES = ['client_name','request_number','final_price','estimated_price','commission_type','format','character_count','usage_type','background','custom_complexity','urgent','requested_deadline','deadline_reason','description','preferred_mood_lighting','additional_information','email','instagram_username','decline_reason','decline_message','payment_instructions','payment_rejection_message','payment_claimed_at','paid_at','accepted_at','completed_at','update_title','update_message','original_name','portal_link','final_artwork_link'];
+  const EMAIL_VARIABLES = ['client_name','request_number','final_price','estimated_price','commission_type','format','character_count','usage_type','background','custom_complexity','urgent','requested_deadline','deadline_reason','description','preferred_mood_lighting','additional_information','email','instagram_username','decline_reason','decline_message','payment_instructions','payment_rejection_message','payment_claimed_at','paid_at','accepted_at','completed_at','update_title','update_message','original_name','country','portal_link','final_artwork_link'];
   const EMAIL_DEFAULTS = {
     CLIENT_REQUEST_RECEIVED:{subject:'Request received — #{{request_number}}',body:'Thank you for submitting your commission request. Your request has been received and is now waiting for review.\n\nRequest number: #{{request_number}}\nCommission: {{commission_type}}\n\nPlease keep your request number for future reference.'},
-    ADMIN_NEW_REQUEST:{subject:'New commission request — #{{request_number}}',body:'A new commission request has been submitted.\n\nRequest number: #{{request_number}}\nClient: {{client_name}}\nClient email: {{email}}\nInstagram: {{instagram_username}}\nCommission: {{commission_type}}\nFormat: {{format}}\nUsage: {{usage_type}}'},
+    ADMIN_NEW_REQUEST:{subject:'New commission request — #{{request_number}}',body:'A new commission request has been submitted.\n\nRequest number: #{{request_number}}\nClient: {{client_name}}\nClient email: {{email}}\nInstagram: {{instagram_username}}\nCountry: {{country}}\nCommission: {{commission_type}}\nFormat: {{format}}\nUsage: {{usage_type}}'},
     CLIENT_ACCEPTED:{subject:'Your commission request has been accepted — #{{request_number}}',body:'Good news! Your commission request has been accepted.\n\nRequest number: #{{request_number}}\nFinal price: {{final_price}}\n\nPlease enter your private commission portal below to view the payment details and instructions for your commission.\n\n{{portal_link}}'},
     CLIENT_DECLINED:{subject:'Update on your commission request — #{{request_number}}',body:'Your commission request was not accepted at this time.\n\nMessage from Nantia:\n{{decline_message}}\n\nRequest number: #{{request_number}}'},
     ADMIN_PAYMENT_CLAIMED:{subject:'Payment claimed — #{{request_number}}',body:'A client has submitted a payment claim and it is ready for manual verification.\n\nRequest number: #{{request_number}}\nClient: {{client_name}}\nClient email: {{email}}\nInstagram: {{instagram_username}}\nClaimed at: {{payment_claimed_at}}\nFinal price: {{final_price}}'},
@@ -1046,6 +1046,7 @@
   function requestDetailRows(r) {
     const rows = [
       ['Preferred contact', r.preferred_contact_method ? (String(r.preferred_contact_method).replaceAll('_',' ')+': '+(r.preferred_contact_value||'—')) : (r.instagram_username ? 'Instagram: '+r.instagram_username : '—')], ['Email', r.email],
+      ['Country', r.country],
       ['Commission', r.commission_type], ['Format', r.format],
       ['Characters', r.character_count], ['Usage', r.usage_type],
       ['Background', r.background], ['Custom complexity', r.custom_complexity],
@@ -1085,10 +1086,10 @@
     const filtered=requestRows.filter(r=>{
       if(status!=='ALL' && r.status!==status)return false;
       if(!q)return true;
-      return [r.request_number,r.instagram_username,r.preferred_contact_method,r.preferred_contact_value,r.email,r.commission_type,r.status].some(v=>String(v||'').toLowerCase().includes(q));
+      return [r.request_number,r.instagram_username,r.preferred_contact_method,r.preferred_contact_value,r.email,r.country,r.commission_type,r.status].some(v=>String(v||'').toLowerCase().includes(q));
     });
     list.innerHTML=filtered.map(r=>`<div class="catalog-admin-row request-row">
-      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · ${esc(statusLabel(r.status))} · ${fmtMoney(r.final_price ?? r.estimated_price)} · ${esc(fmtDate(r.created_at))}</div></div>
+      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.country||'Country not recorded')} · ${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · ${esc(statusLabel(r.status))} · ${fmtMoney(r.final_price ?? r.estimated_price)} · ${esc(fmtDate(r.created_at))}</div></div>
       <div class="catalog-admin-actions"><button type="button" class="btn" data-open-request="${r.id}">Open</button><button type="button" class="btn danger" data-delete-request="${r.id}">Delete</button></div>
     </div>`).join('') || '<p class="muted">No requests match the current search/filter.</p>';
     list.querySelectorAll('[data-open-request]').forEach(b=>b.addEventListener('click',()=>openRequest(requestRows.find(r=>r.id===b.dataset.openRequest))));
@@ -1109,7 +1110,7 @@
     const q=(document.getElementById('archiveSearch')?.value||'').trim().toLowerCase();
     const archived=requestRows.filter(r=>r.status==='COMPLETED').filter(r=>{
       if(!q)return true;
-      return [r.request_number,r.instagram_username,r.preferred_contact_method,r.preferred_contact_value,r.email,r.commission_type,r.status].some(v=>String(v||'').toLowerCase().includes(q));
+      return [r.request_number,r.instagram_username,r.preferred_contact_method,r.preferred_contact_value,r.email,r.country,r.commission_type,r.status].some(v=>String(v||'').toLowerCase().includes(q));
     }).sort((a,b)=>new Date(b.completed_at||b.updated_at||b.created_at)-new Date(a.completed_at||a.updated_at||a.created_at));
     if(!archived.length){
       box.innerHTML='<p class="muted">No completed commissions in the archive.</p>';
@@ -1117,7 +1118,7 @@
       return;
     }
     box.innerHTML=archived.map(r=>`<div class="catalog-admin-row request-row">
-      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · COMPLETED · ${fmtMoney(r.final_price ?? r.estimated_price)} · completed ${esc(fmtDate(r.completed_at||r.updated_at||r.created_at))}</div></div>
+      <div><strong>#${esc(r.request_number)}</strong> · ${esc(r.commission_type||'Commission')}<div class="muted">${esc(r.country||'Country not recorded')} · ${esc(r.preferred_contact_value ? (String(r.preferred_contact_method||'contact').replaceAll('_',' ')+': '+r.preferred_contact_value) : (r.instagram_username||'No contact provided'))} · COMPLETED · ${fmtMoney(r.final_price ?? r.estimated_price)} · completed ${esc(fmtDate(r.completed_at||r.updated_at||r.created_at))}</div></div>
       <div class="catalog-admin-actions"><button type="button" class="btn" data-open-archive-request="${r.id}">Open</button></div>
     </div>`).join('');
     box.querySelectorAll('[data-open-archive-request]').forEach(b=>b.addEventListener('click',()=>openRequest(requestRows.find(r=>r.id===b.dataset.openArchiveRequest),true)));
