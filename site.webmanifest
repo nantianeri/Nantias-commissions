@@ -3,11 +3,10 @@
   "short_name": "Nantia's Art",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#211A2E",
+  "theme_color": "#211A2E",
   "icons": [
     {"src": "/images/favicon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "/images/favicon-512.png", "sizes": "512x512", "type": "image/png"},
-    {"src": "/images/apple-touch-icon.png", "sizes": "180x180", "type": "image/png"}
+    {"src": "/images/favicon-512.png", "sizes": "512x512", "type": "image/png"}
   ]
 }
