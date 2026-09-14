@@ -1,0 +1,5 @@
+# Nantia's Art — GitHub Pages clean URL configuration
+# Public HTML pages are published at /page/ while source files stay in the project root.
+plugins:
+  - jekyll-redirect-from
+

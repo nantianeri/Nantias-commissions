@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://nantia-art.com/</loc></url>
-  <url><loc>https://nantia-art.com/portfolio.html</loc></url>
-  <url><loc>https://nantia-art.com/commissions.html</loc></url>
-  <url><loc>https://nantia-art.com/how-it-works.html</loc></url>
-  <url><loc>https://nantia-art.com/faq.html</loc></url>
-  <url><loc>https://nantia-art.com/tos.html</loc></url>
-  <url><loc>https://nantia-art.com/about.html</loc></url>
-  <url><loc>https://nantia-art.com/request.html</loc></url>
+  <url><loc>https://nantia-art.com/portfolio/</loc></url>
+  <url><loc>https://nantia-art.com/commissions/</loc></url>
+  <url><loc>https://nantia-art.com/how-it-works/</loc></url>
+  <url><loc>https://nantia-art.com/faq/</loc></url>
+  <url><loc>https://nantia-art.com/tos/</loc></url>
+  <url><loc>https://nantia-art.com/about/</loc></url>
+  <url><loc>https://nantia-art.com/request/</loc></url>
 </urlset>
