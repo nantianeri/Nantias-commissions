@@ -216,14 +216,12 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      return uploaded;
    };
 
-   let referenceStage='storage upload';
    try{
      submit.textContent='Uploading references…';
      const files=[
        ...(await uploadReferenceFiles('#characterReferences','character_reference',characterReferenceFiles.map(item=>item.file))),
        ...(await uploadReferenceFiles('#additionalReferences','additional_reference'))
      ];
-     referenceStage='database attachment';
      if(files.length){
        const {error:fileError}=await client.rpc('attach_request_files',{
          p_request_number:String(requestNumber),
@@ -233,9 +231,8 @@ async function initRequestPage(client,settings,offers,discounts=[]){
        if(fileError) throw fileError;
      }
    }catch(fileError){
-     console.error('Reference save failed:',{stage:referenceStage,error:fileError});
-     const details=[fileError?.message,fileError?.details,fileError?.hint,fileError?.code,fileError?.statusCode].filter(Boolean).join('\n\n');
-     alert('REFERENCE UPLOAD DIAGNOSTIC\n\nThe request itself was submitted successfully.\n\nThe failure occurred during: '+referenceStage+'.\n\nSupabase error:\n'+(details||'Failed to fetch / no detailed error was returned. Please check the browser console for the full error.'));
+     console.error('Reference upload failed:',fileError);
+     alert('Your request was submitted, but one or more reference images could not be saved. Please contact me with your request number so I can help attach the references.');
    }
 
    form.hidden=true;
@@ -248,7 +245,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      const p=document.createElement('div');
      p.className='portal-access muted';
      p.style.marginTop='18px';
-     p.innerHTML='<p><strong>Important: save your request number.</strong></p><p>You can check your commission status anytime by visiting Nantia\'s Commissions and selecting <strong>Check My Commission</strong> from the menu.</p><p>To access your commission, you will need your request number and the email address used for this request.</p><a class="btn btn-primary" style="margin-top:8px;display:inline-block" href="/commission.html?request_number='+encodeURIComponent(requestNumber)+'">Check My Commission</a>';
+     p.innerHTML='<p><strong>Important: save your request number.</strong></p><p>You can check your commission status anytime by visiting Nantia\'s Commissions and selecting <strong>Check My Commission</strong> from the menu.</p><p>To access your commission, you will need your request number and the email address used for this request.</p><a class="btn btn-primary" style="margin-top:8px;display:inline-block" href="commission.html?request_number='+encodeURIComponent(requestNumber)+'">Check My Commission</a>';
      confirmation.appendChild(p);
    }
  });
