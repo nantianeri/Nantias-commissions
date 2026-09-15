@@ -199,6 +199,63 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_33',{p_country:country,p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:type.value==='Custom Illustration'?null:(bg?.value||null),p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'moderate'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:additional||null,p_estimated_price:estimated});
    if(error){console.error('Commission submission error:',error);const details=[error.message,error.details,error.hint,error.code].filter(Boolean).join('\n\n');alert('I could not submit your request.\n\nSupabase error:\n'+(details||'No error details were returned.'));submit.disabled=false;submit.textContent='Submit Commission Request';return}
 
+   const convertReferenceToJpeg = (file) => new Promise((resolve,reject) => {
+     const reader = new FileReader();
+     reader.onerror = () => reject(new Error(`Could not read reference image "${file.name}".`));
+     reader.onload = () => {
+       const img = new Image();
+       img.onerror = () => reject(new Error(`Could not process reference image "${file.name}".`));
+       img.onload = () => {
+         try{
+           const MAX_DIMENSION = 3000;
+           const scale = Math.min(1, MAX_DIMENSION / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+           let width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+           let height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+           const canvas = document.createElement('canvas');
+           const ctx = canvas.getContext('2d', {alpha:false});
+           if(!ctx) throw new Error('Your browser could not prepare the reference image.');
+           canvas.width = width;
+           canvas.height = height;
+           ctx.fillStyle = '#ffffff';
+           ctx.fillRect(0,0,width,height);
+           ctx.drawImage(img,0,0,width,height);
+
+           const makeBlob = (quality) => new Promise((res,rej) => {
+             canvas.toBlob(blob => blob ? res(blob) : rej(new Error('Could not convert the reference image.')), 'image/jpeg', quality);
+           });
+
+           (async()=>{
+             let quality = 0.92;
+             let blob = await makeBlob(quality);
+             while(blob.size > MAX_REFERENCE_BYTES && quality > 0.55){
+               quality -= 0.07;
+               blob = await makeBlob(quality);
+             }
+             while(blob.size > MAX_REFERENCE_BYTES && Math.max(width,height) > 1200){
+               width = Math.max(1, Math.round(width * 0.85));
+               height = Math.max(1, Math.round(height * 0.85));
+               canvas.width = width;
+               canvas.height = height;
+               ctx.fillStyle = '#ffffff';
+               ctx.fillRect(0,0,width,height);
+               ctx.drawImage(img,0,0,width,height);
+               quality = 0.82;
+               blob = await makeBlob(quality);
+             }
+             if(blob.size > MAX_REFERENCE_BYTES){
+               reject(new Error(`Reference image "${file.name}" could not be reduced below 2 MB. Please choose a smaller image.`));
+               return;
+             }
+             const convertedName = (file.name||'reference').replace(/\.[^.]+$/,'') + '.jpg';
+             resolve(new File([blob], convertedName, {type:'image/jpeg',lastModified:Date.now()}));
+           })().catch(reject);
+         }catch(e){ reject(e); }
+       };
+       img.src = reader.result;
+     };
+     reader.readAsDataURL(file);
+   });
+
    const uploadReferenceFiles = async (inputId, fileType, sourceFiles=null) => {
      const input=document.querySelector(inputId);
      const files=sourceFiles||Array.from(input?.files||[]);
@@ -206,13 +263,19 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      for(const file of files){
        if(!file.type || !file.type.startsWith('image/')) throw new Error('Only image files can be uploaded as references.');
        if(file.size>MAX_REFERENCE_BYTES) throw new Error(`Reference image "${file.name}" is larger than 2 MB.`);
-       const safeName=(file.name||'reference').replace(/[^a-zA-Z0-9._-]/g,'_');
+
+       let uploadFile=file;
+       if(file.type==='image/png' || file.type==='image/webp'){
+         uploadFile=await convertReferenceToJpeg(file);
+       }
+
+       const safeName=(uploadFile.name||'reference.jpg').replace(/[^a-zA-Z0-9._-]/g,'_');
        const unique=(window.crypto?.randomUUID?.()||Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
        const path=`${requestNumber}/${unique}_${safeName}`;
        let uploadError=null;
        const storage=client.storage.from('commission-references');
        try{
-         const result=await storage.upload(path,file,{upsert:false,contentType:file.type});
+         const result=await storage.upload(path,uploadFile,{upsert:false,contentType:uploadFile.type});
          uploadError=result.error||null;
        }catch(e){
          uploadError=e;
@@ -222,8 +285,6 @@ async function initRequestPage(client,settings,offers,discounts=[]){
          const isFetchFailure=/failed to fetch|networkerror|network error|load failed/i.test(message);
          if(!isFetchFailure) throw uploadError;
 
-         // Fallback: use Supabase's dedicated Storage hostname. This avoids
-         // the project REST hostname path when a browser fails to fetch it.
          const cfg=window.NANTIA_SUPABASE||{};
          const projectUrl=String(cfg.url||'').replace(/\/$/,'');
          const match=projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co$/i);
@@ -236,14 +297,12 @@ async function initRequestPage(client,settings,offers,discounts=[]){
              headers:{
                'Authorization':`Bearer ${cfg.anonKey}`,
                'apikey':cfg.anonKey,
-               'Content-Type':file.type,
+               'Content-Type':uploadFile.type,
                'x-upsert':'false'
              },
-             body:file
+             body:uploadFile
            });
-         }catch(e){
-           throw uploadError;
-         }
+         }catch(e){ throw uploadError; }
          if(!fallbackResponse.ok){
            let detail='';
            try{detail=await fallbackResponse.text();}catch(e){}
