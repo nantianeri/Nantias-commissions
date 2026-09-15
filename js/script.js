@@ -232,7 +232,8 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      }
    }catch(fileError){
      console.error('Reference upload failed:',fileError);
-     alert('Your request was submitted, but one or more reference images could not be saved. Please contact me with your request number so I can help attach the references.');
+     const details=[fileError?.message,fileError?.details,fileError?.hint,fileError?.code,fileError?.statusCode].filter(Boolean).join('\n\n');
+     alert('REFERENCE UPLOAD DIAGNOSTIC\n\nThe request itself was submitted successfully, but saving the reference images failed.\n\nSupabase error:\n'+(details||'No detailed error was returned. Please check the browser console for the full error.'));
    }
 
    form.hidden=true;
