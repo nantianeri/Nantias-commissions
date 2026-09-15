@@ -209,8 +209,49 @@ async function initRequestPage(client,settings,offers,discounts=[]){
        const safeName=(file.name||'reference').replace(/[^a-zA-Z0-9._-]/g,'_');
        const unique=(window.crypto?.randomUUID?.()||Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
        const path=`${requestNumber}/${unique}_${safeName}`;
-       const {error:uploadError}=await client.storage.from('commission-references').upload(path,file,{upsert:false,contentType:file.type});
-       if(uploadError) throw uploadError;
+       let uploadError=null;
+       const storage=client.storage.from('commission-references');
+       try{
+         const result=await storage.upload(path,file,{upsert:false,contentType:file.type});
+         uploadError=result.error||null;
+       }catch(e){
+         uploadError=e;
+       }
+       if(uploadError){
+         const message=String(uploadError?.message||uploadError||'');
+         const isFetchFailure=/failed to fetch|networkerror|network error|load failed/i.test(message);
+         if(!isFetchFailure) throw uploadError;
+
+         // Fallback: use Supabase's dedicated Storage hostname. This avoids
+         // the project REST hostname path when a browser fails to fetch it.
+         const cfg=window.NANTIA_SUPABASE||{};
+         const projectUrl=String(cfg.url||'').replace(/\/$/,'');
+         const match=projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co$/i);
+         if(!match || !cfg.anonKey) throw uploadError;
+         const storageUrl=`https://${match[1]}.storage.supabase.co/storage/v1/object/commission-references/${path.split('/').map(encodeURIComponent).join('/')}`;
+         let fallbackResponse;
+         try{
+           fallbackResponse=await fetch(storageUrl,{
+             method:'POST',
+             headers:{
+               'Authorization':`Bearer ${cfg.anonKey}`,
+               'apikey':cfg.anonKey,
+               'Content-Type':file.type,
+               'x-upsert':'false'
+             },
+             body:file
+           });
+         }catch(e){
+           throw uploadError;
+         }
+         if(!fallbackResponse.ok){
+           let detail='';
+           try{detail=await fallbackResponse.text();}catch(e){}
+           const err=new Error(`Storage upload failed (${fallbackResponse.status})${detail?`: ${detail.slice(0,300)}`:''}`);
+           err.statusCode=fallbackResponse.status;
+           throw err;
+         }
+       }
        uploaded.push({file_type:fileType,storage_path:path,original_name:file.name||safeName});
      }
      return uploaded;
