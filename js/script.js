@@ -197,7 +197,9 @@ async function initRequestPage(client,settings,offers,discounts=[]){
 
    submit.disabled=true;submit.textContent='Submitting…';
    const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_33',{p_country:country,p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:type.value==='Custom Illustration'?null:(bg?.value||null),p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'moderate'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:additional||null,p_estimated_price:estimated});
-   if(error){console.error(error);alert('I could not submit your request. Please try again.');submit.disabled=false;submit.textContent='Submit Commission Request';return}
+   if(error){console.error(error);alert('I could not submit your request.
+
+Supabase error: ' + (error?.message || 'Unknown error') + (error?.details ? '\n\nDetails: ' + error.details : '') + (error?.hint ? '\n\nHint: ' + error.hint : '') + (error?.code ? '\n\nCode: ' + error.code : ''));submit.disabled=false;submit.textContent='Submit Commission Request';return}
 
    const uploadReferenceFiles = async (inputId, fileType, sourceFiles=null) => {
      const input=document.querySelector(inputId);
