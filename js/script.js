@@ -83,6 +83,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  }
  [chars,commercial,usage,custom,fmt,type,urgent].filter(Boolean).forEach(x=>x.addEventListener('change',update));
  const contactMethodEl=document.querySelector('#contactMethod'); if(contactMethodEl)contactMethodEl.addEventListener('change',()=>{const el=document.querySelector('#contactValue');const ph={instagram:'@username',tiktok:'@username',discord:'Username or handle',whatsapp:'Phone number',facebook:'Profile name or link',tumblr:'@username',x:'@username',other:'Username, handle, or contact detail'};if(el)el.placeholder=ph[contactMethodEl.value]||ph.other;});
+ const discoverySourceEl=document.querySelector('#discoverySource'); const discoveryOtherEl=document.querySelector('#discoveryOther'); if(discoverySourceEl) discoverySourceEl.addEventListener('change',()=>{const isOther=discoverySourceEl.value==='Other'; if(discoveryOtherEl){discoveryOtherEl.style.display=isOther?'block':'none'; discoveryOtherEl.required=isOther; if(!isOther) discoveryOtherEl.value='';}});
  if(usage)usage.addEventListener('change',()=>{if(commercial)commercial.checked=usage.value==='commercial';update()});
  if(commercial)commercial.addEventListener('change',()=>{if(usage)usage.value=commercial.checked?'commercial':'personal';update()});
  if(urgent)urgent.addEventListener('change',()=>{if(urgentBox)urgentBox.hidden=!urgent.checked;if(deadline)deadline.required=urgent.checked;update()});
@@ -166,6 +167,11 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    const email=document.querySelector('#clientEmail')?.value.trim()||'';
    const description=document.querySelector('#description')?.value.trim()||'';
    const additional=document.querySelector('#additionalInformation')?.value.trim()||'';
+   const discoverySource=document.querySelector('#discoverySource')?.value||'';
+   const discoveryOther=document.querySelector('#discoveryOther')?.value.trim()||'';
+   if(discoverySource==='Other'&&!discoveryOther){alert('Please tell me how you found me, or choose another option.');document.querySelector('#discoveryOther')?.focus();return;}
+   const discoveryText=discoverySource?(discoverySource==='Other'?`How did you find me: ${discoveryOther}`:`How did you find me: ${discoverySource}`):'';
+   const combinedAdditional=[discoveryText,additional].filter(Boolean).join('\n\n');
    const mood=document.querySelector('#moodLighting')?.value.trim()||'';
    const tos=document.querySelector('#tosAccepted')?.checked;
    const noGuarantee=document.querySelector('#noGuarantee')?.checked;
@@ -196,7 +202,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    syncCharacterInput();
 
    submit.disabled=true;submit.textContent='Submitting…';
-   const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_33',{p_country:country,p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:type.value==='Custom Illustration'?null:(bg?.value||null),p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'moderate'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:additional||null,p_estimated_price:estimated});
+   const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_33',{p_country:country,p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:type.value==='Custom Illustration'?null:(bg?.value||null),p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'moderate'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:combinedAdditional||null,p_estimated_price:estimated});
    if(error){console.error('Commission submission error:',error);const details=[error.message,error.details,error.hint,error.code].filter(Boolean).join('\n\n');alert('I could not submit your request.\n\nSupabase error:\n'+(details||'No error details were returned.'));submit.disabled=false;submit.textContent='Submit Commission Request';return}
 
    const convertReferenceToJpeg = (file) => new Promise((resolve,reject) => {
@@ -256,72 +262,86 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      reader.readAsDataURL(file);
    });
 
-   const uploadReferenceFiles = async (inputId, fileType, sourceFiles=null) => {
-     const input=document.querySelector(inputId);
-     const files=sourceFiles||Array.from(input?.files||[]);
-     const uploaded=[];
-     for(const file of files){
-       if(!file.type || !file.type.startsWith('image/')) throw new Error('Only image files can be uploaded as references.');
-       if(file.size>MAX_REFERENCE_BYTES) throw new Error(`Reference image "${file.name}" is larger than 2 MB.`);
+   // V16.46 — reference upload reliability fix.
+   // Each selected file is handled independently. JPEG/PNG/WebP are supported.
+   // PNG/WebP are converted locally to JPEG; every upload is retried through the
+   // dedicated storage hostname when the normal Supabase Storage client reports
+   // a browser-level fetch failure.
+   const uploadOneReference = async (file, fileType) => {
+     if(!file?.type || !file.type.startsWith('image/')) throw new Error(`Only image files can be uploaded as references: ${file?.name||'unknown file'}`);
+     if(file.size>MAX_REFERENCE_BYTES) throw new Error(`Reference image "${file.name}" is larger than 2 MB.`);
 
-       let uploadFile=file;
-       if(file.type==='image/png' || file.type==='image/webp'){
-         uploadFile=await convertReferenceToJpeg(file);
+     let uploadFile=file;
+     if(file.type==='image/png' || file.type==='image/webp') uploadFile=await convertReferenceToJpeg(file);
+
+     const safeName=(uploadFile.name||'reference.jpg').replace(/[^a-zA-Z0-9._-]/g,'_');
+     const unique=(window.crypto?.randomUUID?.()||`${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`);
+     const path=`${requestNumber}/${unique}_${safeName}`;
+     const storage=client.storage.from('commission-references');
+     const cfg=window.NANTIA_SUPABASE||{};
+
+     const isFetchFailure=(err)=>/failed to fetch|networkerror|network error|load failed|fetch failed/i.test(String(err?.message||err||''));
+     const directStorageUpload=async()=>{
+       const result=await storage.upload(path,uploadFile,{upsert:false,contentType:uploadFile.type,cacheControl:'3600'});
+       if(result?.error) throw result.error;
+     };
+     const restStorageUpload=async()=>{
+       const projectUrl=String(cfg.url||'').replace(/\/$/,'');
+       const match=projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co$/i);
+       if(!match || !cfg.anonKey) throw new Error('Supabase Storage configuration is unavailable.');
+       const storageUrl=`https://${match[1]}.storage.supabase.co/storage/v1/object/commission-references/${path.split('/').map(encodeURIComponent).join('/')}`;
+       const response=await fetch(storageUrl,{
+         method:'POST',
+         headers:{'Authorization':`Bearer ${cfg.anonKey}`,'apikey':cfg.anonKey,'Content-Type':uploadFile.type,'x-upsert':'false'},
+         body:uploadFile,
+         cache:'no-store'
+       });
+       if(!response.ok){
+         let detail=''; try{detail=await response.text()}catch(e){}
+         throw new Error(`Storage upload failed (${response.status})${detail?`: ${detail.slice(0,300)}`:''}`);
        }
+     };
 
-       const safeName=(uploadFile.name||'reference.jpg').replace(/[^a-zA-Z0-9._-]/g,'_');
-       const unique=(window.crypto?.randomUUID?.()||Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
-       const path=`${requestNumber}/${unique}_${safeName}`;
-       let uploadError=null;
-       const storage=client.storage.from('commission-references');
+     let lastError=null;
+     // Two attempts are intentional: mobile browsers can occasionally drop the
+     // first Storage request even though the same file uploads correctly on retry.
+     for(let attempt=1;attempt<=2;attempt++){
        try{
-         const result=await storage.upload(path,uploadFile,{upsert:false,contentType:uploadFile.type});
-         uploadError=result.error||null;
+         await directStorageUpload();
+         return {file_type:fileType,storage_path:path,original_name:file.name||safeName};
        }catch(e){
-         uploadError=e;
+         lastError=e;
+         if(!isFetchFailure(e) && attempt===2) break;
        }
-       if(uploadError){
-         const message=String(uploadError?.message||uploadError||'');
-         const isFetchFailure=/failed to fetch|networkerror|network error|load failed/i.test(message);
-         if(!isFetchFailure) throw uploadError;
+     }
 
-         const cfg=window.NANTIA_SUPABASE||{};
-         const projectUrl=String(cfg.url||'').replace(/\/$/,'');
-         const match=projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co$/i);
-         if(!match || !cfg.anonKey) throw uploadError;
-         const storageUrl=`https://${match[1]}.storage.supabase.co/storage/v1/object/commission-references/${path.split('/').map(encodeURIComponent).join('/')}`;
-         let fallbackResponse;
-         try{
-           fallbackResponse=await fetch(storageUrl,{
-             method:'POST',
-             headers:{
-               'Authorization':`Bearer ${cfg.anonKey}`,
-               'apikey':cfg.anonKey,
-               'Content-Type':uploadFile.type,
-               'x-upsert':'false'
-             },
-             body:uploadFile
-           });
-         }catch(e){ throw uploadError; }
-         if(!fallbackResponse.ok){
-           let detail='';
-           try{detail=await fallbackResponse.text();}catch(e){}
-           const err=new Error(`Storage upload failed (${fallbackResponse.status})${detail?`: ${detail.slice(0,300)}`:''}`);
-           err.statusCode=fallbackResponse.status;
-           throw err;
-         }
+     // Browser-level fetch failures are retried against the dedicated Storage host.
+     if(isFetchFailure(lastError)){
+       try{
+         await restStorageUpload();
+         return {file_type:fileType,storage_path:path,original_name:file.name||safeName};
+       }catch(e){
+         lastError=e;
        }
-       uploaded.push({file_type:fileType,storage_path:path,original_name:file.name||safeName});
+     }
+     throw lastError||new Error(`Could not upload reference image "${file.name}".`);
+   };
+
+   const uploadReferenceFiles = async (fileEntries) => {
+     const uploaded=[];
+     for(const entry of fileEntries){
+       uploaded.push(await uploadOneReference(entry.file,entry.fileType));
      }
      return uploaded;
    };
 
    try{
      submit.textContent='Uploading references…';
-     const files=[
-       ...(await uploadReferenceFiles('#characterReferences','character_reference',characterReferenceFiles.map(item=>item.file))),
-       ...(await uploadReferenceFiles('#additionalReferences','additional_reference'))
+     const referenceEntries=[
+       ...characterReferenceFiles.map(item=>({file:item.file,fileType:'character_reference'})),
+       ...Array.from(additionalReferenceInput?.files||[]).map(file=>({file,fileType:'additional_reference'}))
      ];
+     const files=await uploadReferenceFiles(referenceEntries);
      if(files.length){
        const {error:fileError}=await client.rpc('attach_request_files',{
          p_request_number:String(requestNumber),

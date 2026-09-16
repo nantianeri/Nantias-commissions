@@ -7,7 +7,7 @@ const statusInfo={
   PAYMENT_CLAIMED:{label:'Payment Being Verified',message:'Your payment confirmation has been received and is currently being verified.'},
   PAYMENT_REJECTED:{label:'Payment Claim Rejected',message:'Your payment claim could not be verified. Please review the message below and submit a new payment claim after resolving the issue.'},
   PAID:{label:'Paid',message:'Your payment has been confirmed. Your commission has officially been added to my commission queue.'},
-  IN_PROGRESS:{label:'In Progress',message:'Your commission is currently being worked on. I will contact you on Instagram when personal communication or feedback is needed.'},
+  IN_PROGRESS:{label:'In Progress',message:'Your commission is currently being worked on. I will contact you using your preferred contact method when personal communication or feedback is needed.'},
   COMPLETED:{label:'Completed',message:'Your commission is complete. Your final artwork is available below.'},
   DECLINED:{label:'Declined',message:'Unfortunately, this commission request was not accepted.'}
 };
@@ -61,7 +61,7 @@ const nextStep={
  PAYMENT_CLAIMED:'I am checking the payment. No further action is needed from you right now.',
  PAYMENT_REJECTED:'Your payment claim was not verified. Review the payment rejection message, correct the issue, then submit a new claim.',
  PAID:'Your commission is in the queue. I will start it when it reaches the front.',
- IN_PROGRESS:'Your commission is being worked on. I will contact you on Instagram if I need personal feedback or clarification.',
+ IN_PROGRESS:'Your commission is being worked on. I will contact you using your preferred contact method if I need personal feedback or clarification.',
  COMPLETED:'Your commission is complete. Your final artwork will appear below when it has been uploaded.',
  DECLINED:'No further action is needed for this request.'
 };
