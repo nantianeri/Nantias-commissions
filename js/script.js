@@ -201,158 +201,147 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    }
    syncCharacterInput();
 
-   submit.disabled=true;submit.textContent='Submitting…';
-   const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_33',{p_country:country,p_contact_method:contactMethod,p_contact_value:contactValue,p_email:email,p_commission_offer_id:selectedOffer.id,p_commission_type:type.value,p_format:finalFormat,p_character_count:n,p_usage_type:commercial?.checked?'commercial':'personal',p_background:type.value==='Custom Illustration'?null:(bg?.value||null),p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'moderate'):null,p_urgent:!!urgent?.checked,p_requested_deadline:urgent?.checked?deadline.value:null,p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,p_description:description,p_preferred_mood_lighting:mood||null,p_additional_information:combinedAdditional||null,p_estimated_price:estimated});
-   if(error){console.error('Commission submission error:',error);const details=[error.message,error.details,error.hint,error.code].filter(Boolean).join('\n\n');alert('I could not submit your request.\n\nSupabase error:\n'+(details||'No error details were returned.'));submit.disabled=false;submit.textContent='Submit Commission Request';return}
+   // V16.49 — reference system rebuild.
+   // References are uploaded BEFORE the commission request is created.
+   // If any reference fails, the request is NOT created.
+   const makeReferenceUploadError = (file, err) => {
+     const raw = String(err?.message || err || '').trim();
+     if(/failed to fetch|networkerror|network error|load failed|fetch failed/i.test(raw)){
+       return `Could not reach the image storage service while uploading "${file.name}". Your commission request was not submitted.`;
+     }
+     return raw || `The image could not be uploaded.`;
+   };
 
-   const convertReferenceToJpeg = (file) => new Promise((resolve,reject) => {
-     const reader = new FileReader();
-     reader.onerror = () => reject(new Error(`Could not read reference image "${file.name}".`));
-     reader.onload = () => {
-       const img = new Image();
-       img.onerror = () => reject(new Error(`Could not process reference image "${file.name}".`));
-       img.onload = () => {
-         try{
-           const MAX_DIMENSION = 3000;
-           const scale = Math.min(1, MAX_DIMENSION / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
-           let width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
-           let height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
-           const canvas = document.createElement('canvas');
-           const ctx = canvas.getContext('2d', {alpha:false});
-           if(!ctx) throw new Error('Your browser could not prepare the reference image.');
-           canvas.width = width;
-           canvas.height = height;
-           ctx.fillStyle = '#ffffff';
-           ctx.fillRect(0,0,width,height);
-           ctx.drawImage(img,0,0,width,height);
+   const uploadReferenceBatch = async (fileEntries, batchId) => {
+     const uploaded=[];
+     const failures=[];
 
-           const makeBlob = (quality) => new Promise((res,rej) => {
-             canvas.toBlob(blob => blob ? res(blob) : rej(new Error('Could not convert the reference image.')), 'image/jpeg', quality);
-           });
+     for(let index=0; index<fileEntries.length; index++){
+       const entry=fileEntries[index];
+       const file=entry.file;
+       submit.textContent=`Uploading reference ${index+1} of ${fileEntries.length}…`;
 
-           (async()=>{
-             let quality = 0.92;
-             let blob = await makeBlob(quality);
-             while(blob.size > MAX_REFERENCE_BYTES && quality > 0.55){
-               quality -= 0.07;
-               blob = await makeBlob(quality);
-             }
-             while(blob.size > MAX_REFERENCE_BYTES && Math.max(width,height) > 1200){
-               width = Math.max(1, Math.round(width * 0.85));
-               height = Math.max(1, Math.round(height * 0.85));
-               canvas.width = width;
-               canvas.height = height;
-               ctx.fillStyle = '#ffffff';
-               ctx.fillRect(0,0,width,height);
-               ctx.drawImage(img,0,0,width,height);
-               quality = 0.82;
-               blob = await makeBlob(quality);
-             }
-             if(blob.size > MAX_REFERENCE_BYTES){
-               reject(new Error(`Reference image "${file.name}" could not be reduced below 2 MB. Please choose a smaller image.`));
-               return;
-             }
-             const convertedName = (file.name||'reference').replace(/\.[^.]+$/,'') + '.jpg';
-             resolve(new File([blob], convertedName, {type:'image/jpeg',lastModified:Date.now()}));
-           })().catch(reject);
-         }catch(e){ reject(e); }
-       };
-       img.src = reader.result;
-     };
-     reader.readAsDataURL(file);
+       if(!file || !file.type?.startsWith('image/')){
+         failures.push({file,reason:'Only image files are allowed.'});
+         continue;
+       }
+       if(file.size>MAX_REFERENCE_BYTES){
+         failures.push({file,reason:'File is larger than the 2 MB maximum.'});
+         continue;
+       }
+
+       const safeName=(file.name||'reference').replace(/[^a-zA-Z0-9._-]/g,'_');
+       const path=`pending/${batchId}/${safeName}`;
+       const storage=client.storage.from('commission-references');
+
+       try{
+         const {data,error}=await storage.upload(path,file,{
+           upsert:false,
+           contentType:file.type,
+           cacheControl:'3600'
+         });
+         if(error) throw error;
+
+         uploaded.push({
+           file_type:entry.fileType,
+           storage_path:data?.path||path,
+           original_name:file.name||safeName
+         });
+       }catch(err){
+         console.error('Reference upload failed:',file.name,err);
+         failures.push({file,reason:makeReferenceUploadError(file,err)});
+       }
+     }
+
+     return {uploaded,failures};
+   };
+
+   const referenceEntries=[
+     ...characterReferenceFiles.map(item=>({file:item.file,fileType:'character_reference'})),
+     ...Array.from(additionalReferenceInput?.files||[]).map(file=>({file,fileType:'additional_reference'}))
+   ];
+
+   // Validate every reference before touching Supabase. Character references are
+   // required; additional references are optional but any selected file must be valid.
+   if(characterReferenceFiles.length<1){
+     alert('Please upload at least 1 character reference image before submitting your request.');
+     characterReferenceInput?.focus();
+     submit.disabled=false;
+     submit.textContent='Submit Commission Request';
+     return;
+   }
+
+   const invalidEntries=referenceEntries.filter(entry=>!fileIsValid(entry.file));
+   if(invalidEntries.length){
+     const details=invalidEntries.map(entry=>{
+       const file=entry.file;
+       const reason=!file?.type?.startsWith('image/')
+         ? 'Only image files are allowed.'
+         : file.size>MAX_REFERENCE_BYTES
+           ? 'File is larger than the 2 MB maximum.'
+           : 'Invalid image file.';
+       return `• ${file?.name||'Unnamed file'} — ${reason}`;
+     }).join('\n');
+     alert(`Please replace or remove these reference files before submitting:\n\n${details}`);
+     submit.disabled=false;
+     submit.textContent='Submit Commission Request';
+     return;
+   }
+
+   submit.disabled=true;
+   const batchId=window.crypto?.randomUUID?.()||`${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+
+   // Upload references first. No commission request exists yet.
+   const {uploaded,failures}=await uploadReferenceBatch(referenceEntries,batchId);
+
+   if(failures.length){
+     const details=failures.map(item=>`• ${item.file?.name||'Unnamed file'} — ${item.reason}`).join('\n');
+     alert(
+       `Your commission request was NOT submitted because one or more reference images could not be uploaded.\n\n`+
+       `${details}\n\nPlease fix the listed file(s) and try again.`
+     );
+     submit.disabled=false;
+     submit.textContent='Submit Commission Request';
+     return;
+   }
+
+   // All selected references successfully reached Storage. Now create the request
+   // and attach those exact files in one database transaction.
+   submit.textContent='Submitting commission request…';
+   const {data:requestNumber,error}=await client.rpc('create_commission_request_v16_49',{
+     p_upload_batch_id:batchId,
+     p_files:uploaded,
+     p_country:country,
+     p_contact_method:contactMethod,
+     p_contact_value:contactValue,
+     p_email:email,
+     p_commission_offer_id:selectedOffer.id,
+     p_commission_type:type.value,
+     p_format:finalFormat,
+     p_character_count:n,
+     p_usage_type:commercial?.checked?'commercial':'personal',
+     p_background:type.value==='Custom Illustration'?null:(bg?.value||null),
+     p_custom_complexity:type.value==='Custom Illustration'?(custom?.value||'moderate'):null,
+     p_urgent:!!urgent?.checked,
+     p_requested_deadline:urgent?.checked?deadline.value:null,
+     p_deadline_reason:urgent?.checked?(document.querySelector('#deadlineReason')?.value.trim()||null):null,
+     p_description:description,
+     p_preferred_mood_lighting:mood||null,
+     p_additional_information:combinedAdditional||null,
+     p_estimated_price:estimated
    });
 
-   // V16.46 — reference upload reliability fix.
-   // Each selected file is handled independently. JPEG/PNG/WebP are supported.
-   // PNG/WebP are converted locally to JPEG; every upload is retried through the
-   // dedicated storage hostname when the normal Supabase Storage client reports
-   // a browser-level fetch failure.
-   const uploadOneReference = async (file, fileType) => {
-     if(!file?.type || !file.type.startsWith('image/')) throw new Error(`Only image files can be uploaded as references: ${file?.name||'unknown file'}`);
-     if(file.size>MAX_REFERENCE_BYTES) throw new Error(`Reference image "${file.name}" is larger than 2 MB.`);
-
-     let uploadFile=file;
-     if(file.type==='image/png' || file.type==='image/webp') uploadFile=await convertReferenceToJpeg(file);
-
-     const safeName=(uploadFile.name||'reference.jpg').replace(/[^a-zA-Z0-9._-]/g,'_');
-     const unique=(window.crypto?.randomUUID?.()||`${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`);
-     const path=`${requestNumber}/${unique}_${safeName}`;
-     const storage=client.storage.from('commission-references');
-     const cfg=window.NANTIA_SUPABASE||{};
-
-     const isFetchFailure=(err)=>/failed to fetch|networkerror|network error|load failed|fetch failed/i.test(String(err?.message||err||''));
-     const directStorageUpload=async()=>{
-       const result=await storage.upload(path,uploadFile,{upsert:false,contentType:uploadFile.type,cacheControl:'3600'});
-       if(result?.error) throw result.error;
-     };
-     const restStorageUpload=async()=>{
-       const projectUrl=String(cfg.url||'').replace(/\/$/,'');
-       const match=projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co$/i);
-       if(!match || !cfg.anonKey) throw new Error('Supabase Storage configuration is unavailable.');
-       const storageUrl=`https://${match[1]}.storage.supabase.co/storage/v1/object/commission-references/${path.split('/').map(encodeURIComponent).join('/')}`;
-       const response=await fetch(storageUrl,{
-         method:'POST',
-         headers:{'Authorization':`Bearer ${cfg.anonKey}`,'apikey':cfg.anonKey,'Content-Type':uploadFile.type,'x-upsert':'false'},
-         body:uploadFile,
-         cache:'no-store'
-       });
-       if(!response.ok){
-         let detail=''; try{detail=await response.text()}catch(e){}
-         throw new Error(`Storage upload failed (${response.status})${detail?`: ${detail.slice(0,300)}`:''}`);
-       }
-     };
-
-     let lastError=null;
-     // Two attempts are intentional: mobile browsers can occasionally drop the
-     // first Storage request even though the same file uploads correctly on retry.
-     for(let attempt=1;attempt<=2;attempt++){
-       try{
-         await directStorageUpload();
-         return {file_type:fileType,storage_path:path,original_name:file.name||safeName};
-       }catch(e){
-         lastError=e;
-         if(!isFetchFailure(e) && attempt===2) break;
-       }
-     }
-
-     // Browser-level fetch failures are retried against the dedicated Storage host.
-     if(isFetchFailure(lastError)){
-       try{
-         await restStorageUpload();
-         return {file_type:fileType,storage_path:path,original_name:file.name||safeName};
-       }catch(e){
-         lastError=e;
-       }
-     }
-     throw lastError||new Error(`Could not upload reference image "${file.name}".`);
-   };
-
-   const uploadReferenceFiles = async (fileEntries) => {
-     const uploaded=[];
-     for(const entry of fileEntries){
-       uploaded.push(await uploadOneReference(entry.file,entry.fileType));
-     }
-     return uploaded;
-   };
-
-   try{
-     submit.textContent='Uploading references…';
-     const referenceEntries=[
-       ...characterReferenceFiles.map(item=>({file:item.file,fileType:'character_reference'})),
-       ...Array.from(additionalReferenceInput?.files||[]).map(file=>({file,fileType:'additional_reference'}))
-     ];
-     const files=await uploadReferenceFiles(referenceEntries);
-     if(files.length){
-       const {error:fileError}=await client.rpc('attach_request_files',{
-         p_request_number:String(requestNumber),
-         p_email:email,
-         p_files:files
-       });
-       if(fileError) throw fileError;
-     }
-   }catch(fileError){
-     console.error('Reference upload failed:',fileError);
-     alert('Your request was submitted, but one or more reference images could not be saved. Please contact me with your request number so I can help attach the references.');
+   if(error){
+     console.error('Commission submission error:',error);
+     const details=[error.message,error.details,error.hint,error.code].filter(Boolean).join('\n\n');
+     alert(
+       `Your commission request was NOT submitted.\n\n`+
+       `The reference images uploaded successfully, but the request could not be created.\n\n`+
+       `${details||'No error details were returned.'}`
+     );
+     submit.disabled=false;
+     submit.textContent='Submit Commission Request';
+     return;
    }
 
    form.hidden=true;
