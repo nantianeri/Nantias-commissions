@@ -120,17 +120,20 @@ redirect_from:
     if(!isOpen)submit.disabled=true;
   }
 
-  await loadWebsiteCreationAvailability();
   form.addEventListener('submit',async e=>{
+    // Prevent the browser's native form navigation/reload immediately.
+    // Any async Supabase checks must happen only after this.
+    e.preventDefault();
+
     const {data:availability,error:availabilityError}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
     if(availabilityError || availability?.website_creation_open===false){
-      e.preventDefault();
       if(closedNotice)closedNotice.hidden=false;
       form.hidden=true;
       submit.disabled=true;
+      msg.textContent=availabilityError ? 'The website request system is temporarily unavailable. Please try again later.' : '';
       return;
     }
-    e.preventDefault(); msg.textContent=''; success.hidden=true; submit.disabled=true; submit.textContent='Sending…';
+    msg.textContent=''; success.hidden=true; submit.disabled=true; submit.textContent='Sending…';
     const payload={
       p_client_name:document.getElementById('websiteName').value.trim(),
       p_email:document.getElementById('websiteEmail').value.trim(),
@@ -150,6 +153,9 @@ redirect_from:
     success.hidden=false; success.scrollIntoView({behavior:'smooth',block:'center'});
     submit.disabled=false;submit.textContent='Send Website Request';
   });
+
+  // Load the closed/open state without delaying registration of the submit handler.
+  loadWebsiteCreationAvailability();
 })();
 </script>
 <script src="/js/content.js?v=8.1"></script><script src="/js/script.js?v=7.4"></script>
