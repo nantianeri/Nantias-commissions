@@ -1305,9 +1305,16 @@
       const {data:urlData,error:urlError}=await client.storage.from('commission-references').createSignedUrl(f.storage_path,3600);
       const wrap=document.createElement('div'); wrap.className='sample-admin-item reference-card';
       if(!urlError && urlData?.signedUrl){
-        wrap.innerHTML=`<a class="reference-image" href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(urlData.signedUrl)}" alt="${esc(f.original_name||'Reference')}" loading="lazy"></a><div class="reference-meta"><strong>${esc(f.original_name||'Reference')}</strong><span>${esc(f.file_type)}</span></div>`;
+        const originalName=f.original_name||'Reference file';
+        const lowerName=originalName.toLowerCase();
+        const isImage=/\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i.test(lowerName);
+        if(isImage){
+          wrap.innerHTML=`<a class="reference-image" href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(urlData.signedUrl)}" alt="${esc(originalName)}" loading="lazy"></a><div class="reference-meta"><strong>${esc(originalName)}</strong><span>${esc(f.file_type)}</span><a href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener">Open file</a></div>`;
+        } else {
+          wrap.innerHTML=`<div style="padding:12px"><div class="reference-meta"><strong>${esc(originalName)}</strong><span>${esc(f.file_type)}</span></div><a class="btn btn-secondary" style="margin-top:10px;display:inline-block" href="${esc(urlData.signedUrl)}" target="_blank" rel="noopener">Open / Download File</a></div>`;
+        }
       } else {
-        wrap.innerHTML=`<div class="muted" style="padding:12px">${esc(f.original_name||'Reference')}<br>${esc(urlError?.message||'Unable to load file')}</div>`;
+        wrap.innerHTML=`<div class="muted" style="padding:12px">${esc(f.original_name||'Reference file')}<br>${esc(urlError?.message||'Unable to load file')}</div>`;
       }
       box.appendChild(wrap);
     }
@@ -1659,5 +1666,5 @@
   await loadDashboard();
 })();
 </script>
-<script src="/js/script.js"></script>
+<script src="/js/script.js?v=7.5"></script>
 </body></html>
