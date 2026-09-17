@@ -88,13 +88,13 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  if(commercial)commercial.addEventListener('change',()=>{if(usage)usage.value=commercial.checked?'commercial':'personal';update()});
  if(urgent)urgent.addEventListener('change',()=>{if(urgentBox)urgentBox.hidden=!urgent.checked;if(deadline)deadline.required=urgent.checked;update()});
  update();
-   // V16.34 — character references are required, limited to 5 images, and max 2 MB each.
+   // V16.53 — character references are required, limited to 5 files, with no file-type restriction.
    // Validation happens before the request is created, so invalid/missing required references block submission.
    const characterReferenceInput=document.querySelector('#characterReferences');
    const additionalReferenceInput=document.querySelector('#additionalReferences');
    const characterReferenceList=document.querySelector('#characterReferenceList');
    const MAX_CHARACTER_REFERENCES=5;
-   const MAX_REFERENCE_BYTES=2*1024*1024;
+   const MAX_REFERENCE_BYTES=50*1024*1024;
    let characterReferenceFiles=[];
 
    const formatFileSize=(bytes)=>{
@@ -103,7 +103,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      if(n<1024*1024)return `${(n/1024).toFixed(1)} KB`;
      return `${(n/(1024*1024)).toFixed(2)} MB`;
    };
-   const fileIsValid=(file)=>!!file&&file.type?.startsWith('image/')&&file.size<=MAX_REFERENCE_BYTES;
+   const fileIsValid=(file)=>!!file&&file.size<=MAX_REFERENCE_BYTES;
    const syncCharacterInput=()=>{
      if(!characterReferenceInput)return;
      try{
@@ -117,15 +117,15 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      characterReferenceList.innerHTML=characterReferenceFiles.map((item,index)=>{
        const file=item.file;
        const invalid=!fileIsValid(file);
-       const reason=!file?.type?.startsWith('image/')?'Only image files are allowed.':file?.size>MAX_REFERENCE_BYTES?'Too large. Maximum 2 MB.':'';
+       const reason=file?.size>MAX_REFERENCE_BYTES?'Too large. Maximum 50 MB.':'';
        return `<div class="reference-file-item${invalid?' invalid':''}" data-ref-index="${index}">
          <div class="reference-file-meta">
-           <span class="reference-file-name">${escapeHtml(file?.name||'Reference image')}</span>
+           <span class="reference-file-name">${escapeHtml(file?.name||'Reference file')}</span>
            <span class="reference-file-size">${formatFileSize(file?.size||0)}${invalid?` · <span class="reference-file-status">${escapeHtml(reason)}</span>`:' · Ready'}</span>
          </div>
          <div class="reference-file-actions">
            ${invalid?`<button type="button" class="reference-replace" data-replace-ref="${index}">Replace</button>`:''}
-           <button type="button" class="reference-remove" aria-label="Remove ${escapeHtml(file?.name||'reference image')}" data-remove-ref="${index}">Remove</button>
+           <button type="button" class="reference-remove" aria-label="Remove ${escapeHtml(file?.name||'reference file')}" data-remove-ref="${index}">Remove</button>
          </div>
        </div>`;
      }).join('');
@@ -134,7 +134,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      }));
      characterReferenceList.querySelectorAll('[data-replace-ref]').forEach(btn=>btn.addEventListener('click',()=>{
        const index=Number(btn.dataset.replaceRef);
-       const picker=document.createElement('input');picker.type='file';picker.accept='image/*';
+       const picker=document.createElement('input');picker.type='file';
        picker.addEventListener('change',()=>{
          const file=picker.files?.[0];if(!file)return;
          characterReferenceFiles[index]={file};syncCharacterInput();renderCharacterReferences();
@@ -148,7 +148,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
        const room=Math.max(0,MAX_CHARACTER_REFERENCES-characterReferenceFiles.length);
        const accepted=incoming.slice(0,room);
        characterReferenceFiles.push(...accepted.map(file=>({file})));
-       if(incoming.length>room)alert(`You can upload a maximum of ${MAX_CHARACTER_REFERENCES} character reference images. The extra file(s) were not added.`);
+       if(incoming.length>room)alert(`You can upload a maximum of ${MAX_CHARACTER_REFERENCES} character reference files. The extra file(s) were not added.`);
        syncCharacterInput();renderCharacterReferences();
      });
    }
@@ -188,15 +188,15 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    if(!selectedOffer){alert('The selected commission is no longer available. Please return to the Commissions page and try again.');return}
    const base=selectedOffer.base_price!=null?Number(selectedOffer.base_price):Number(baseOffers[finalFormat]?.base_price||0);const discount=activeDiscountForOffer(selectedOffer,discounts);const effectiveBase=discountedPrice(base,discount);
    const n=Math.max(1,+chars.value||1);const extraRate=Number(settings?.extra_character_rate??0.70);const commercialRate=Number(settings?.commercial_rate??COMMERCIAL_RATE);const urgentFee=urgent?.checked?Number(settings?.urgent_fee??URGENT_FEE):0;const complexity=type.value==='Custom Illustration'?({moderate:15,detailed:30,'highly-detailed':50}[custom?.value||'moderate']||15):0;const extras=(effectiveBase*extraRate*(n-1))+complexity;const subtotal=effectiveBase+extras;const comm=commercial?.checked?subtotal*commercialRate:0;const estimated=subtotal+comm+urgentFee;
-   // Required character references must be present and every selected file must be valid.
+   // Required character references must be present and every selected file must be within the storage size limit.
    if(characterReferenceFiles.length<1){
-     alert('Please upload at least 1 character reference image before submitting your request.');
+     alert('Please upload at least 1 character reference file before submitting your request.');
      characterReferenceInput?.focus();
      return;
    }
    const invalidCharacterReferences=characterReferenceFiles.filter(item=>!fileIsValid(item.file));
    if(invalidCharacterReferences.length){
-     alert('Please replace or remove every invalid character reference image before submitting. Each file must be an image no larger than 2 MB.');
+     alert('Please replace or remove every reference file that is too large before submitting. Each file must be 50 MB or smaller.');
      return;
    }
    syncCharacterInput();
@@ -207,9 +207,9 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    const makeReferenceUploadError = (file, err) => {
      const raw = String(err?.message || err || '').trim();
      if(/failed to fetch|networkerror|network error|load failed|fetch failed/i.test(raw)){
-       return `Could not reach the image storage service while uploading "${file.name}". Your commission request was not submitted.`;
+       return `Could not reach the file storage service while uploading "${file.name}". Your commission request was not submitted.`;
      }
-     return raw || `The image could not be uploaded.`;
+     return raw || `The file could not be uploaded.`;
    };
 
    const uploadReferenceBatch = async (fileEntries, batchId) => {
@@ -221,23 +221,24 @@ async function initRequestPage(client,settings,offers,discounts=[]){
        const file=entry.file;
        submit.textContent=`Uploading reference ${index+1} of ${fileEntries.length}…`;
 
-       if(!file || !file.type?.startsWith('image/')){
-         failures.push({file,reason:'Only image files are allowed.'});
+       if(!file){
+         failures.push({file,reason:'The selected file could not be read.'});
          continue;
        }
        if(file.size>MAX_REFERENCE_BYTES){
-         failures.push({file,reason:'File is larger than the 2 MB maximum.'});
+         failures.push({file,reason:'File is larger than the 50 MB maximum.'});
          continue;
        }
 
        const safeName=(file.name||'reference').replace(/[^a-zA-Z0-9._-]/g,'_');
-       const path=`pending/${batchId}/${safeName}`;
+       const uniquePrefix=(window.crypto?.randomUUID?.()||`${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`).replace(/-/g,'');
+       const path=`pending/${batchId}/${uniquePrefix}_${safeName}`;
        const storage=client.storage.from('commission-references');
 
        try{
          const {data,error}=await storage.upload(path,file,{
            upsert:false,
-           contentType:file.type,
+           contentType:file.type||'application/octet-stream',
            cacheControl:'3600'
          });
          if(error) throw error;
@@ -262,9 +263,9 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    ];
 
    // Validate every reference before touching Supabase. Character references are
-   // required; additional references are optional but any selected file must be valid.
+   // required; additional references are optional. Any selected file type is allowed.
    if(characterReferenceFiles.length<1){
-     alert('Please upload at least 1 character reference image before submitting your request.');
+     alert('Please upload at least 1 character reference file before submitting your request.');
      characterReferenceInput?.focus();
      submit.disabled=false;
      submit.textContent='Submit Commission Request';
@@ -275,11 +276,9 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    if(invalidEntries.length){
      const details=invalidEntries.map(entry=>{
        const file=entry.file;
-       const reason=!file?.type?.startsWith('image/')
-         ? 'Only image files are allowed.'
-         : file.size>MAX_REFERENCE_BYTES
-           ? 'File is larger than the 2 MB maximum.'
-           : 'Invalid image file.';
+       const reason=file?.size>MAX_REFERENCE_BYTES
+         ? 'File is larger than the 50 MB maximum.'
+         : 'The selected file could not be read.';
        return `• ${file?.name||'Unnamed file'} — ${reason}`;
      }).join('\n');
      alert(`Please replace or remove these reference files before submitting:\n\n${details}`);
@@ -297,7 +296,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    if(failures.length){
      const details=failures.map(item=>`• ${item.file?.name||'Unnamed file'} — ${item.reason}`).join('\n');
      alert(
-       `Your commission request was NOT submitted because one or more reference images could not be uploaded.\n\n`+
+       `Your commission request was NOT submitted because one or more reference files could not be uploaded.\n\n`+
        `${details}\n\nPlease fix the listed file(s) and try again.`
      );
      submit.disabled=false;
@@ -354,7 +353,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      const p=document.createElement('div');
      p.className='portal-access muted';
      p.style.marginTop='18px';
-     p.innerHTML='<p><strong>Important: save your request number.</strong></p><p>You can check your commission status anytime by visiting Nantia\'s Commissions and selecting <strong>Check My Commission</strong> from the menu.</p><p>To access your commission, you will need your request number and the email address used for this request.</p><a class="btn btn-primary" style="margin-top:8px;display:inline-block" href="commission.html?request_number='+encodeURIComponent(requestNumber)+'">Check My Commission</a>';
+     p.innerHTML='<p><strong>Important: save your request number.</strong></p><p>You can check your commission status anytime by visiting Nantia\'s Commissions and selecting <strong>Check My Commission</strong> from the menu.</p><p>To access your commission, you will need your request number and the email address used for this request.</p><a class="btn btn-primary" style="margin-top:8px;display:inline-block" href="/commission/?request_number='+encodeURIComponent(requestNumber)+'">Check My Commission</a>';
      confirmation.appendChild(p);
    }
  });
