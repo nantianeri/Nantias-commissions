@@ -96,49 +96,46 @@ redirect_from:
 </main>
 <footer><div class="container"><div class="grid grid-2"><div><strong data-content-key="global.brand">NANTIA</strong><br><span data-content-key="global.role">Character Artist &amp; Illustrator</span></div><div><strong data-content-key="global.social.heading">Find me online</strong><div class="socials"><a data-content-href-key="global.social.instagram_url" data-content-key="global.social.instagram_label" href="https://www.instagram.com/nantia.art/">Instagram</a><a data-content-href-key="global.social.tiktok_url" href="#">TikTok</a><a data-content-href-key="global.social.tumblr_url" href="#">Tumblr</a></div></div></div><br><small data-content-key="global.copyright">© 2026 Nantia. Artist websites &amp; commission services.</small></div></footer>
 <script>
-(function(){
+(async function(){
   const form=document.getElementById('websiteRequestForm');
   const msg=document.getElementById('websiteFormMessage');
   const success=document.getElementById('websiteSuccess');
   const closedNotice=document.getElementById('websiteClosedNotice');
   const submit=document.getElementById('websiteSubmit');
   const cfg=window.NANTIA_SUPABASE||{};
-  const getClient=()=> (window.supabase&&cfg.url&&cfg.anonKey) ? window.supabase.createClient(cfg.url,cfg.anonKey) : null;
-  let websiteCreationOpen=true;
-  let availabilityKnown=false;
+  const client=(window.supabase&&cfg.url&&cfg.anonKey)?window.supabase.createClient(cfg.url,cfg.anonKey):null;
+  if(!client){msg.textContent='The website request system is temporarily unavailable. Please try again later.';submit.disabled=true;return;}
 
-  // Attach the submit handler immediately. The availability check must never
-  // prevent the form from having a handler and falling back to a page reload.
+  async function loadWebsiteCreationAvailability(){
+    const {data,error}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
+    if(error){
+      console.error('Website Creation availability check failed:',error);
+      msg.textContent='The website request system is temporarily unavailable. Please try again later.';
+      submit.disabled=true;
+      return;
+    }
+    const isOpen=data?.website_creation_open!==false;
+    if(closedNotice)closedNotice.hidden=isOpen;
+    form.hidden=!isOpen;
+    if(!isOpen)submit.disabled=true;
+  }
+
+  // Attach the handler before any awaited availability check so the browser
+  // can never fall back to normal form navigation/reload.
   form.addEventListener('submit',async e=>{
     e.preventDefault();
-    e.stopPropagation();
+    if(submit.disabled) return;
 
-    const client=getClient();
-    if(!client){
-      msg.textContent='The website request system is temporarily unavailable. Please try again later.';
-      return;
-    }
-
-    if(!availabilityKnown){
-      msg.textContent='Please wait a moment while the request form is checked.';
-      return;
-    }
-    if(!websiteCreationOpen){
+    const {data:availability,error:availabilityError}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
+    if(availabilityError || availability?.website_creation_open===false){
       if(closedNotice)closedNotice.hidden=false;
       form.hidden=true;
+      submit.disabled=true;
+      msg.textContent=availabilityError ? 'The website request system is temporarily unavailable. Please try again later.' : '';
       return;
     }
 
-    if(!form.checkValidity()){
-      form.reportValidity();
-      return;
-    }
-
-    msg.textContent='';
-    success.hidden=true;
-    submit.disabled=true;
-    submit.textContent='Sending…';
-
+    msg.textContent=''; success.hidden=true; submit.disabled=true; submit.textContent='Sending…';
     const payload={
       p_client_name:document.getElementById('websiteName').value.trim(),
       p_email:document.getElementById('websiteEmail').value.trim(),
@@ -152,51 +149,14 @@ redirect_from:
       p_description:document.getElementById('websiteDescription').value.trim(),
       p_budget:document.getElementById('websiteBudget').value.trim()||null
     };
-
-    try{
-      const {data,error}=await client.rpc('create_website_request_v1',payload);
-      if(error)throw error;
-      console.log('Website request created:',data);
-      form.reset();
-      success.hidden=false;
-      success.scrollIntoView({behavior:'smooth',block:'center'});
-      msg.textContent='';
-    }catch(error){
-      console.error('Website request submission failed:',error);
-      msg.textContent=error?.message||'I could not send your website request. Please try again.';
-    }finally{
-      submit.disabled=false;
-      submit.textContent='Send Website Request';
-    }
+    const {data,error}=await client.rpc('create_website_request_v1',payload);
+    if(error){console.error(error);msg.textContent=error.message||'I could not send your website request. Please try again.';submit.disabled=false;submit.textContent='Send Website Request';return;}
+    form.reset();
+    success.hidden=false; success.scrollIntoView({behavior:'smooth',block:'center'});
+    submit.disabled=false;submit.textContent='Send Website Request';
   });
 
-  async function loadWebsiteCreationAvailability(){
-    const client=getClient();
-    if(!client){
-      msg.textContent='The website request system is temporarily unavailable. Please try again later.';
-      submit.disabled=true;
-      availabilityKnown=true;
-      websiteCreationOpen=false;
-      return;
-    }
-    try{
-      const {data,error}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
-      if(error)throw error;
-      websiteCreationOpen=data?.website_creation_open!==false;
-      if(closedNotice)closedNotice.hidden=websiteCreationOpen;
-      form.hidden=!websiteCreationOpen;
-      submit.disabled=!websiteCreationOpen;
-      availabilityKnown=true;
-    }catch(error){
-      console.error('Website Creation availability check failed:',error);
-      msg.textContent='The website request system is temporarily unavailable. Please try again later.';
-      submit.disabled=true;
-      availabilityKnown=true;
-      websiteCreationOpen=false;
-    }
-  }
-
-  loadWebsiteCreationAvailability();
+  await loadWebsiteCreationAvailability();
 })();
 </script>
 <script src="/js/content.js?v=8.1"></script><script src="/js/script.js?v=7.4"></script>
