@@ -53,6 +53,12 @@
 <p id="settingsMessage" class="muted"></p>
 </div>
 
+<div class="card" style="margin-top:20px">
+<h3>Website Creation Availability</h3>
+<label class="check"><input id="websiteOpenToggle" type="checkbox"><span>Accept new website creation requests</span></label>
+<p id="websiteSettingsMessage" class="muted"></p>
+</div>
+
 
 <div class="card" style="margin-top:20px" id="siteContentCard">
   <div class="section-head" style="align-items:center">
@@ -390,6 +396,8 @@
 
     const {data:settings} = await client.from('site_settings').select('*').eq('id',true).single();
     if (settings) document.getElementById('openToggle').checked = settings.commissions_open;
+
+    await loadWebsiteCreationAvailability();
 
     const {data:requests} = await client.from('commission_requests').select('status');
     if (requests) {
@@ -1053,10 +1061,34 @@
     if (!error) await loadDashboard();
   });
 
+  async function loadWebsiteCreationAvailability(){
+    const toggle=document.getElementById('websiteOpenToggle');
+    const message=document.getElementById('websiteSettingsMessage');
+    if(!toggle)return;
+    const {data,error}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
+    if(error){
+      toggle.checked=false;
+      if(message){message.textContent=`Could not load Website Creation availability: ${error.message}`;message.style.color='var(--pink)';}
+      return;
+    }
+    toggle.checked=data?.website_creation_open!==false;
+    if(message){message.textContent=toggle.checked?'Website requests are currently OPEN.':'Website requests are currently CLOSED.';message.style.color='';}
+  }
+
   logout.addEventListener('click', async ()=>{ await client.auth.signOut(); await loadDashboard(); });
   document.getElementById('openToggle').addEventListener('change', async e=>{
     const {error}=await client.from('site_settings').update({commissions_open:e.target.checked}).eq('id',true);
     document.getElementById('settingsMessage').textContent = error ? error.message : 'Saved.';
+  });
+  document.getElementById('websiteOpenToggle').addEventListener('change', async e=>{
+    const {error}=await client.from('website_creation_settings').update({website_creation_open:e.target.checked}).eq('id',true);
+    const message=document.getElementById('websiteSettingsMessage');
+    if(error){
+      e.target.checked=!e.target.checked;
+      if(message){message.textContent=error.message;message.style.color='var(--pink)';}
+      return;
+    }
+    if(message){message.textContent=e.target.checked?'Website requests are now OPEN.':'Website requests are now CLOSED.';message.style.color='';}
   });
 
   let currentRequestId = null;

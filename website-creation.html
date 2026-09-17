@@ -57,6 +57,7 @@ redirect_from:
 <section class="section" id="website-request-section">
 <div class="container">
 <div class="section-head"><div><div class="eyebrow" data-content-key="website.request_eyebrow">Website Request</div><h2 data-content-key="website.request_heading">Tell me what you have in mind.</h2><p class="lead" data-content-key="website.request_intro">I'll review your idea first. If it's something I can build, we'll move the conversation to your preferred DM/contact channel and discuss the details and final price.</p></div></div>
+<div id="websiteClosedNotice" class="notice website-success" hidden><strong data-content-key="website.closed_title">Website Creation is currently closed.</strong><br><br><span data-content-key="website.closed_message">I’m currently focused on existing website projects and am not accepting new website requests at the moment. I’ll reopen requests when I’m available for another project.</span></div>
 <div id="websiteSuccess" class="notice website-success" hidden><strong data-content-key="website.success_title">Your website request was sent.</strong><br><br><span data-content-key="website.success_text">I’ll go through your request and decide whether I can take on the project. If I accept it, I’ll contact you through your preferred contact method so we can discuss the design, features, workflow and final price personally.</span></div>
 <form id="websiteRequestForm" class="form-wrap website-request-form">
 <div class="grid grid-2">
@@ -99,11 +100,36 @@ redirect_from:
   const form=document.getElementById('websiteRequestForm');
   const msg=document.getElementById('websiteFormMessage');
   const success=document.getElementById('websiteSuccess');
+  const closedNotice=document.getElementById('websiteClosedNotice');
   const submit=document.getElementById('websiteSubmit');
   const cfg=window.NANTIA_SUPABASE||{};
   const client=(window.supabase&&cfg.url&&cfg.anonKey)?window.supabase.createClient(cfg.url,cfg.anonKey):null;
   if(!client){msg.textContent='The website request system is temporarily unavailable. Please try again later.';submit.disabled=true;return;}
+
+  async function loadWebsiteCreationAvailability(){
+    const {data,error}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
+    if(error){
+      console.error('Website Creation availability check failed:',error);
+      msg.textContent='The website request system is temporarily unavailable. Please try again later.';
+      submit.disabled=true;
+      return;
+    }
+    const isOpen=data?.website_creation_open!==false;
+    if(closedNotice)closedNotice.hidden=isOpen;
+    form.hidden=!isOpen;
+    if(!isOpen)submit.disabled=true;
+  }
+
+  await loadWebsiteCreationAvailability();
   form.addEventListener('submit',async e=>{
+    const {data:availability,error:availabilityError}=await client.from('website_creation_settings').select('website_creation_open').eq('id',true).single();
+    if(availabilityError || availability?.website_creation_open===false){
+      e.preventDefault();
+      if(closedNotice)closedNotice.hidden=false;
+      form.hidden=true;
+      submit.disabled=true;
+      return;
+    }
     e.preventDefault(); msg.textContent=''; success.hidden=true; submit.disabled=true; submit.textContent='Sending…';
     const payload={
       p_client_name:document.getElementById('websiteName').value.trim(),
