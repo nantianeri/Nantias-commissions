@@ -63,6 +63,31 @@
 </div>
 
 
+<div class="card" style="margin-top:20px" id="websiteRequestsCard">
+  <details id="websiteRequestsDetails" open>
+    <summary class="admin-collapsible-summary">
+      <div><h3>Artist Website Requests</h3><p class="muted">Review artists who have asked you to build a website. These are separate from art commission requests.</p></div>
+      <span class="collapsible-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px">
+      <input id="websiteRequestSearch" placeholder="Search website requests…" style="flex:1;min-width:220px">
+      <select id="websiteRequestStatusFilter" style="max-width:220px"><option value="ALL">All statuses</option><option value="PENDING">Pending review</option><option value="ACCEPTED">Accepted</option><option value="DECLINED">Declined</option></select>
+      <button id="refreshWebsiteRequestsBtn" class="btn" type="button">Refresh</button>
+    </div>
+    <div id="websiteRequestsMessage" class="muted" style="margin-top:10px"></div>
+    <div id="websiteRequestsList" style="display:grid;gap:10px;margin-top:16px"></div>
+    <div id="websiteRequestEditor" class="card" hidden style="margin-top:18px;background:rgba(255,255,255,.02)">
+      <div class="section-head" style="align-items:center"><div><h3 id="websiteRequestEditorTitle">Website Request</h3><p id="websiteRequestMeta" class="muted"></p></div><button id="closeWebsiteRequestBtn" class="btn" type="button">Close</button></div>
+      <div id="websiteRequestDetails" style="margin-top:18px"></div>
+      <label style="margin-top:18px">Status</label>
+      <select id="websiteRequestStatus"><option value="PENDING">Pending review</option><option value="ACCEPTED">Accepted</option><option value="DECLINED">Declined</option></select>
+      <label>Admin notes</label><textarea id="websiteRequestNotes" rows="5" placeholder="Private notes about this website project…"></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button id="saveWebsiteRequestBtn" class="btn btn-primary" type="button">Save Status &amp; Notes</button><button id="deleteWebsiteRequestBtn" class="btn danger" type="button">Delete Test Request</button></div>
+      <p id="websiteRequestSaveMessage" class="muted" style="margin-top:10px"></p>
+    </div>
+  </details>
+</div>
+
 <div class="card" style="margin-top:20px" id="emailTemplatesCard">
   <details id="emailTemplatesDetails" open>
     <summary class="admin-collapsible-summary">
@@ -475,13 +500,16 @@
   const EMAIL_TEMPLATE_LABELS = {
     CLIENT_REQUEST_RECEIVED:'New Commission Request — Client', ADMIN_NEW_REQUEST:'New Commission Request — Admin',
     CLIENT_ACCEPTED:'Commission Accepted', CLIENT_DECLINED:'Commission Declined',
+    ADMIN_WEBSITE_REQUEST:'New Artist Website Request — Admin', CLIENT_WEBSITE_REQUEST_RECEIVED:'Website Request Received — Client',
     ADMIN_PAYMENT_CLAIMED:'Payment Claimed — Admin', CLIENT_PAYMENT_CLAIMED:'Payment Claimed — Client',
     CLIENT_PAYMENT_REJECTED:'Payment Rejected', CLIENT_PAYMENT_CONFIRMED:'Payment Confirmed',
     CLIENT_IN_PROGRESS:'Commission In Progress', CLIENT_COMPLETED:'Commission Completed',
     CLIENT_UPDATE:'Commission Update', CLIENT_FINAL_ARTWORK:'Final Artwork Delivered'
   };
-  const EMAIL_VARIABLES = ['client_name','request_number','final_price','estimated_price','commission_type','format','character_count','usage_type','background','custom_complexity','urgent','requested_deadline','deadline_reason','description','preferred_mood_lighting','additional_information','email','instagram_username','decline_reason','decline_message','payment_instructions','payment_rejection_message','payment_claimed_at','paid_at','accepted_at','completed_at','update_title','update_message','original_name','country','portal_link','final_artwork_link'];
+  const EMAIL_VARIABLES = ['client_name','request_number','website_request_number','website_type','contact_method','contact_value','art_type','visual_style','features','current_links','website_description','budget','final_price','estimated_price','commission_type','format','character_count','usage_type','background','custom_complexity','urgent','requested_deadline','deadline_reason','description','preferred_mood_lighting','additional_information','email','instagram_username','decline_reason','decline_message','payment_instructions','payment_rejection_message','payment_claimed_at','paid_at','accepted_at','completed_at','update_title','update_message','original_name','country','portal_link','final_artwork_link'];
   const EMAIL_DEFAULTS = {
+    CLIENT_WEBSITE_REQUEST_RECEIVED:{subject:'Website request received — #{{website_request_number}}',body:'Thank you for sending me your website request. I’ll go through your idea and decide whether I can take on the project.\n\nWebsite request: #{{website_request_number}}\nWebsite type: {{website_type}}\n\nIf I accept the project, I’ll contact you through your preferred contact method so we can discuss the design, features, workflow and final price personally.'},
+    ADMIN_WEBSITE_REQUEST:{subject:'New artist website request — #{{website_request_number}}',body:'A new artist website request has been submitted.\n\nRequest: #{{website_request_number}}\nArtist: {{client_name}}\nEmail: {{email}}\nPreferred contact: {{contact_method}} — {{contact_value}}\nWebsite type: {{website_type}}\nArt: {{art_type}}\nVisual style: {{visual_style}}\nFeatures: {{features}}\nCurrent links: {{current_links}}\nBudget: {{budget}}\n\nProject description:\n{{website_description}}'},
     CLIENT_REQUEST_RECEIVED:{subject:'Request received — #{{request_number}}',body:'Thank you for submitting your commission request. Your request has been received and is now waiting for review.\n\nRequest number: #{{request_number}}\nCommission: {{commission_type}}\n\nPlease keep your request number for future reference.'},
     ADMIN_NEW_REQUEST:{subject:'New commission request — #{{request_number}}',body:'A new commission request has been submitted.\n\nRequest number: #{{request_number}}\nClient: {{client_name}}\nClient email: {{email}}\nInstagram: {{instagram_username}}\nCountry: {{country}}\nCommission: {{commission_type}}\nFormat: {{format}}\nUsage: {{usage_type}}'},
     CLIENT_ACCEPTED:{subject:'Your commission request has been accepted — #{{request_number}}',body:'Good news! Your commission request has been accepted.\n\nRequest number: #{{request_number}}\nFinal price: {{final_price}}\n\nPlease enter your private commission portal below to view the payment details and instructions for your commission.\n\n{{portal_link}}'},
@@ -498,7 +526,7 @@
   let emailTemplateRows=[];
   function showEmailTemplatesMessage(text,error=false){const el=document.getElementById('emailTemplatesMessage');if(el){el.textContent=text||'';el.style.color=error?'var(--pink)':'';}}
   function sampleEmailText(text){
-    const sample={client_name:'Nantia',request_number:'24',final_price:'$45.00',estimated_price:'$40.00',commission_type:'Character Illustration',format:'PNG',character_count:'1',usage_type:'personal',background:'Simple',custom_complexity:'',urgent:'false',requested_deadline:'2026-10-01',deadline_reason:'',description:'Sample commission description',preferred_mood_lighting:'Warm',additional_information:'',email:'client@example.com',instagram_username:'@client',decline_reason:'',decline_message:'Thank you for your request. I am unable to accept it at this time.',payment_instructions:'Please use the payment details in your portal.',payment_rejection_message:'Please check the payment details and try again.',payment_claimed_at:'2026-09-10 12:00',paid_at:'2026-09-10 13:00',accepted_at:'2026-09-10 11:00',completed_at:'2026-09-10 14:00',update_title:'Sketch update',update_message:'Your sketch is ready for review.',original_name:'final-artwork.png',portal_link:'[Client Portal button]',final_artwork_link:'[Final Artwork button]'};
+    const sample={client_name:'Nantia',request_number:'24',website_request_number:'W-12',website_type:'Portfolio + Commission Management',contact_method:'Instagram',contact_value:'@artist',art_type:'Character art',visual_style:'Dark fantasy, purple and gold',features:'Portfolio, about page, commission management',current_links:'instagram.com/example',website_description:'I want a custom website for my art.',budget:'$500–$800',final_price:'$45.00',estimated_price:'$40.00',commission_type:'Character Illustration',format:'PNG',character_count:'1',usage_type:'personal',background:'Simple',custom_complexity:'',urgent:'false',requested_deadline:'2026-10-01',deadline_reason:'',description:'Sample commission description',preferred_mood_lighting:'Warm',additional_information:'',email:'client@example.com',instagram_username:'@client',decline_reason:'',decline_message:'Thank you for your request. I am unable to accept it at this time.',payment_instructions:'Please use the payment details in your portal.',payment_rejection_message:'Please check the payment details and try again.',payment_claimed_at:'2026-09-10 12:00',paid_at:'2026-09-10 13:00',accepted_at:'2026-09-10 11:00',completed_at:'2026-09-10 14:00',update_title:'Sketch update',update_message:'Your sketch is ready for review.',original_name:'final-artwork.png',portal_link:'[Client Portal button]',final_artwork_link:'[Final Artwork button]'};
     return String(text||'').replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g,(_,k)=>sample[k]??`{{${k}}}`);
   }
   function renderEmailTemplates(){
@@ -1415,6 +1443,82 @@
     await loadRequests(); const {data:r}=await client.from('commission_requests').select('*').eq('id',currentRequestId).single(); if(r)await openRequest(r);
   });
 
+  let currentWebsiteRequestId = null;
+  let websiteRequestRows = [];
+
+  function websiteTypeLabel(v){
+    return v==='portfolio'?'Portfolio Website':v==='commission'?'Portfolio + Commission Management':v==='unsure'?'Not sure yet':String(v||'—');
+  }
+  function websiteStatusLabel(v){
+    return v==='ACCEPTED'?'Accepted':v==='DECLINED'?'Declined':'Pending review';
+  }
+  function showWebsiteRequestsMessage(text,error=false){
+    const el=document.getElementById('websiteRequestsMessage'); if(!el)return;
+    el.textContent=text||''; el.style.color=error?'var(--pink)':'';
+  }
+  function websiteRequestDetailRows(r){
+    const rows=[
+      ['Artist',r.client_name],['Email',r.email],['Preferred contact',`${r.contact_method||'—'} — ${r.contact_value||'—'}`],
+      ['Website type',websiteTypeLabel(r.website_type)],['Art',r.art_type],['Visual style',r.visual_style],['Requested features',r.features],
+      ['Current links',r.current_links],['Budget',r.budget],['Project description',r.description],['Submitted',fmtDate(r.created_at)]
+    ];
+    return rows.map(([k,v])=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="muted small">${esc(k)}</div><div style="white-space:pre-wrap;margin-top:4px">${esc(v||'—')}</div></div>`).join('');
+  }
+  function renderWebsiteRequests(){
+    const list=document.getElementById('websiteRequestsList'); if(!list)return;
+    const q=(document.getElementById('websiteRequestSearch')?.value||'').trim().toLowerCase();
+    const status=document.getElementById('websiteRequestStatusFilter')?.value||'ALL';
+    const filtered=websiteRequestRows.filter(r=>{
+      if(status!=='ALL' && r.status!==status)return false;
+      if(!q)return true;
+      return [r.website_request_number,r.client_name,r.email,r.contact_method,r.contact_value,r.website_type,r.art_type,r.visual_style,r.features,r.description,r.budget,r.status].some(v=>String(v||'').toLowerCase().includes(q));
+    });
+    list.innerHTML=filtered.map(r=>`<div class="catalog-admin-row request-row"><div><strong>#${esc(r.website_request_number)}</strong> · ${esc(websiteTypeLabel(r.website_type))}<div class="muted">${esc(r.client_name||'Unnamed')} · ${esc(r.email||'No email')} · ${esc(r.contact_method||'contact')}: ${esc(r.contact_value||'—')} · ${esc(websiteStatusLabel(r.status))} · ${esc(fmtDate(r.created_at))}</div></div><div class="catalog-admin-actions"><button type="button" class="btn" data-open-website-request="${esc(r.id)}">Open</button><button type="button" class="btn danger" data-delete-website-request="${esc(r.id)}">Delete</button></div></div>`).join('') || '<p class="muted">No website requests match the current filter.</p>';
+    list.querySelectorAll('[data-open-website-request]').forEach(b=>b.addEventListener('click',()=>openWebsiteRequest(websiteRequestRows.find(r=>r.id===b.dataset.openWebsiteRequest))));
+    list.querySelectorAll('[data-delete-website-request]').forEach(b=>b.addEventListener('click',()=>deleteWebsiteRequest(websiteRequestRows.find(r=>r.id===b.dataset.deleteWebsiteRequest))));
+  }
+  async function loadWebsiteRequests(){
+    showWebsiteRequestsMessage('Loading…');
+    const {data,error}=await client.from('website_requests').select('*').order('created_at',{ascending:false});
+    if(error){showWebsiteRequestsMessage(error.message,true);return;}
+    websiteRequestRows=data||[]; renderWebsiteRequests(); showWebsiteRequestsMessage(`${websiteRequestRows.length} website request${websiteRequestRows.length===1?'':'s'} loaded.`);
+  }
+  function openWebsiteRequest(r){
+    if(!r)return; currentWebsiteRequestId=r.id;
+    document.getElementById('websiteRequestEditorTitle').textContent=`Website Request #${r.website_request_number}`;
+    document.getElementById('websiteRequestMeta').textContent=`${websiteStatusLabel(r.status)} · submitted ${fmtDate(r.created_at)}`;
+    document.getElementById('websiteRequestDetails').innerHTML=websiteRequestDetailRows(r);
+    document.getElementById('websiteRequestStatus').value=r.status||'PENDING';
+    document.getElementById('websiteRequestNotes').value=r.admin_notes||'';
+    document.getElementById('websiteRequestSaveMessage').textContent='';
+    document.getElementById('websiteRequestEditor').hidden=false;
+    document.getElementById('websiteRequestEditor').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  async function deleteWebsiteRequest(r){
+    if(!r)return;
+    if(!confirm(`Delete website request #${r.website_request_number}? Use this for test requests only.`))return;
+    const {error}=await client.from('website_requests').delete().eq('id',r.id);
+    if(error){showWebsiteRequestsMessage(error.message,true);return;}
+    if(currentWebsiteRequestId===r.id){currentWebsiteRequestId=null;document.getElementById('websiteRequestEditor').hidden=true;}
+    await loadWebsiteRequests();
+  }
+  document.getElementById('websiteRequestSearch')?.addEventListener('input',renderWebsiteRequests);
+  document.getElementById('websiteRequestStatusFilter')?.addEventListener('change',renderWebsiteRequests);
+  document.getElementById('refreshWebsiteRequestsBtn')?.addEventListener('click',loadWebsiteRequests);
+  document.getElementById('closeWebsiteRequestBtn')?.addEventListener('click',()=>{currentWebsiteRequestId=null;document.getElementById('websiteRequestEditor').hidden=true;});
+  document.getElementById('saveWebsiteRequestBtn')?.addEventListener('click',async()=>{
+    if(!currentWebsiteRequestId)return;
+    const msg=document.getElementById('websiteRequestSaveMessage'); msg.textContent='Saving…'; msg.style.color='';
+    const status=document.getElementById('websiteRequestStatus').value;
+    const payload={status,admin_notes:document.getElementById('websiteRequestNotes').value.trim()||null};
+    if(status==='ACCEPTED')payload.accepted_at=new Date().toISOString();
+    if(status==='DECLINED')payload.declined_at=new Date().toISOString();
+    const {error}=await client.from('website_requests').update(payload).eq('id',currentWebsiteRequestId);
+    if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
+    msg.textContent='Saved. If accepted, contact the artist through their preferred DM/contact method.';
+    await loadWebsiteRequests();
+  });
+
   let currentDiscountId = null;
   let discountRows = [];
 
@@ -1519,6 +1623,7 @@
 
   await loadPaymentProfile();
   await loadDiscounts();
+  await loadWebsiteRequests();
   await loadDashboard();
 })();
 </script>
