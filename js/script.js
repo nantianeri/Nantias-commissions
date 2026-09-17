@@ -88,13 +88,14 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  if(commercial)commercial.addEventListener('change',()=>{if(usage)usage.value=commercial.checked?'commercial':'personal';update()});
  if(urgent)urgent.addEventListener('change',()=>{if(urgentBox)urgentBox.hidden=!urgent.checked;if(deadline)deadline.required=urgent.checked;update()});
  update();
-   // V16.54 — character references are required, limited to 5 image files.
+   // V16.55 — character references are required, limited to 5 files.
+   // Any file type is accepted; each file must be 2 MB or smaller.
    // Validation happens before the request is created, so invalid/missing required references block submission.
    const characterReferenceInput=document.querySelector('#characterReferences');
    const additionalReferenceInput=document.querySelector('#additionalReferences');
    const characterReferenceList=document.querySelector('#characterReferenceList');
    const MAX_CHARACTER_REFERENCES=5;
-   const MAX_REFERENCE_BYTES=10*1024*1024;
+   const MAX_REFERENCE_BYTES=2*1024*1024;
    let characterReferenceFiles=[];
 
    const formatFileSize=(bytes)=>{
@@ -105,7 +106,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    };
    const fileIsValid=(file)=>{
      if(!file||file.size>MAX_REFERENCE_BYTES)return false;
-     return String(file.type||'').toLowerCase().startsWith('image/');
+     return true;
    };
    const syncCharacterInput=()=>{
      if(!characterReferenceInput)return;
@@ -120,7 +121,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      characterReferenceList.innerHTML=characterReferenceFiles.map((item,index)=>{
        const file=item.file;
        const invalid=!fileIsValid(file);
-       const reason=file?.size>MAX_REFERENCE_BYTES?'Too large. Maximum 10 MB.':(!String(file?.type||'').toLowerCase().startsWith('image/')?'Only image files are allowed.':'');
+       const reason=file?.size>MAX_REFERENCE_BYTES?'Too large. Maximum 2 MB.':'';
        return `<div class="reference-file-item${invalid?' invalid':''}" data-ref-index="${index}">
          <div class="reference-file-meta">
            <span class="reference-file-name">${escapeHtml(file?.name||'Reference file')}</span>
@@ -137,7 +138,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      }));
      characterReferenceList.querySelectorAll('[data-replace-ref]').forEach(btn=>btn.addEventListener('click',()=>{
        const index=Number(btn.dataset.replaceRef);
-       const picker=document.createElement('input');picker.type='file';picker.accept='image/*';
+       const picker=document.createElement('input');picker.type='file';
        picker.addEventListener('change',()=>{
          const file=picker.files?.[0];if(!file)return;
          characterReferenceFiles[index]={file};syncCharacterInput();renderCharacterReferences();
@@ -199,7 +200,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    }
    const invalidCharacterReferences=characterReferenceFiles.filter(item=>!fileIsValid(item.file));
    if(invalidCharacterReferences.length){
-     alert('Please replace or remove every reference file that is too large before submitting. Each file must be 10 MB or smaller and must be an image file.');
+     alert('Please replace or remove every reference file that is too large before submitting. Each file must be 2 MB or smaller.');
      return;
    }
    syncCharacterInput();
@@ -229,7 +230,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
          continue;
        }
        if(!fileIsValid(file)){
-         const reason=file.size>MAX_REFERENCE_BYTES?'File is larger than the 10 MB maximum.':'Only image files are allowed.';
+         const reason=file.size>MAX_REFERENCE_BYTES?'File is larger than the 2 MB maximum.':'The selected file could not be read.';
          failures.push({file,reason});
          continue;
        }
@@ -267,7 +268,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
    ];
 
    // Validate every reference before touching Supabase. Character references are
-   // required; additional references are optional. Only image files are allowed.
+   // required; additional references are optional. Any file type is allowed, with a 2 MB per-file limit.
    if(characterReferenceFiles.length<1){
      alert('Please upload at least 1 character reference file before submitting your request.');
      characterReferenceInput?.focus();
@@ -281,8 +282,8 @@ async function initRequestPage(client,settings,offers,discounts=[]){
      const details=invalidEntries.map(entry=>{
        const file=entry.file;
        const reason=file?.size>MAX_REFERENCE_BYTES
-         ? 'File is larger than the 10 MB maximum.'
-         : (!String(file?.type||'').toLowerCase().startsWith('image/') ? 'Only image files are allowed.' : 'The selected file could not be read.');
+         ? 'File is larger than the 2 MB maximum.'
+         : 'The selected file could not be read.';
        return `• ${file?.name||'Unnamed file'} — ${reason}`;
      }).join('\n');
      alert(`Please replace or remove these reference files before submitting:\n\n${details}`);
