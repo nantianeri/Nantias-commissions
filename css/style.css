@@ -1181,3 +1181,10 @@ main .socials a:focus-visible{
   .website-price strong{font-size:1.7rem}
   .website-request-form{padding:0}
 }
+
+
+/* Prevent a brief flash of fallback copy while editable site content loads. */
+html[data-content-pending="true"] [data-content-key],
+html[data-content-pending="true"] [data-content-href-key] {
+  visibility: hidden;
+}
