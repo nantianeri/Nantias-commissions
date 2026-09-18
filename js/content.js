@@ -1,12 +1,13 @@
 /* V8 Site Content — loads editable public copy from Supabase. Falls back to HTML defaults. */
 (function(){
+  document.documentElement.dataset.contentPending='true';
   async function loadSiteContent(){
     const cfg=window.NANTIA_SUPABASE||{};
-    if(!window.supabase || !cfg.url || !cfg.anonKey) return;
+    if(!window.supabase || !cfg.url || !cfg.anonKey){document.documentElement.dataset.contentPending='false';return;}
     try{
       const client=window.supabase.createClient(cfg.url,cfg.anonKey);
       const {data,error}=await client.from('site_content').select('key,value');
-      if(error || !data) return;
+      if(error || !data){document.documentElement.dataset.contentPending='false';return;}
       const map={}; data.forEach(row=>{map[row.key]=row.value??''});
       document.querySelectorAll('[data-content-href-key]').forEach(el=>{
         const hrefKey=el.dataset.contentHrefKey;
@@ -30,7 +31,10 @@
         else el.textContent=map[key];
       });
       document.documentElement.dataset.contentLoaded='true';
-    }catch(_){/* Keep built-in fallback copy. */}
+      document.documentElement.dataset.contentPending='false';
+    }catch(_){/* Keep built-in fallback copy. */
+      document.documentElement.dataset.contentPending='false';
+    }
   }
   document.addEventListener('DOMContentLoaded',loadSiteContent);
 })();
