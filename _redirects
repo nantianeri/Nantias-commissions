@@ -1,0 +1,27 @@
+# Nantia's Commissions — Netlify routing
+# Clean URLs internally serve the existing static HTML files.
+# Legacy .html URLs permanently redirect to the canonical clean URLs.
+
+# Canonical clean routes
+/commissions/       /commissions.html       200
+/portfolio/         /portfolio.html         200
+/request/           /request.html           200
+/how-it-works/      /how-it-works.html      200
+/faq/               /faq.html               200
+/tos/               /tos.html               200
+/about/             /about.html             200
+/commission/        /commission.html        200
+/closed/            /closed.html            200
+/website-creation/  /website-creation.html  200
+
+# Legacy .html routes
+/commissions.html       /commissions/       301
+/portfolio.html         /portfolio/         301
+/request.html           /request/           301
+/how-it-works.html      /how-it-works/      301
+/faq.html               /faq/               301
+/tos.html               /tos/               301
+/about.html             /about/             301
+/commission.html        /commission/        301
+/closed.html            /closed/            301
+/website-creation.html  /website-creation/  301

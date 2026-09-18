@@ -1,0 +1,19 @@
+[build.processing.html]
+  pretty_urls = true
+
+# Static HTML/JS/CSS should always revalidate in the browser. This prevents
+# an old local copy from being displayed before the current deployed files.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
