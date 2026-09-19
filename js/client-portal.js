@@ -192,14 +192,14 @@ function renderPayment(r){
  const lockedAmount=r.payment_amount;
  const providerAmount=document.getElementById('paymentProviderAmount');
  if(providerAmount){
-   providerAmount.textContent=isCamerPay && lockedAmount!=null ? `CamerPay payment amount: ${xaf(lockedAmount)}` : '';
+   providerAmount.textContent=isCamerPay && lockedAmount!=null ? `CamerPay payment amount: ${xaf(lockedAmount)}` : (isCamerPay ? 'CamerPay will calculate the XAF amount using its current rate when checkout starts.' : '');
  }
 
  const country=r.payment_country||'Cameroon';
  const method=r.payment_method||'Mobile Money';
  const network=r.mobile_network||'MTN Mobile Money';
  const details=isCamerPay
-   ? [['Payment provider','CamerPay'],['Payment currency',r.payment_currency||'XAF'],['Payment amount',lockedAmount!=null?xaf(lockedAmount):'Not configured yet']]
+   ? [['Payment provider','CamerPay'],['Payment currency',r.payment_currency||'XAF'],['Payment amount',lockedAmount!=null?xaf(lockedAmount):'Calculated by CamerPay at checkout']]
    : [['Payment provider',provider==='manual'?'Manual payment':provider],['Destination country',country],['Delivery method',method],['Mobile network',network],['First name',r.payment_first_name],['Last name',r.payment_last_name],['Mobile phone number',r.payment_mobile_phone]];
  const detailsBox=document.getElementById('paymentDetails');
  if(detailsBox){
@@ -245,9 +245,9 @@ function renderPayment(r){
  const camMsg=document.getElementById('camerpayMessage');
  if(isCamerPay && camButton){
    const phoneInput=document.getElementById('camerpayPhone');
-   camButton.disabled=r.status==='PAYMENT_CLAIMED' || !hasFinalPrice || lockedAmount==null;
+   camButton.disabled=r.status==='PAYMENT_CLAIMED' || !hasFinalPrice;
    if(r.status==='PAYMENT_CLAIMED' && camMsg)camMsg.textContent='Your payment is being confirmed. You do not need to start another payment.';
-   else if(!hasFinalPrice || lockedAmount==null && camMsg)camMsg.textContent='Payment cannot start because the final payment amount has not been configured.';
+   else if(!hasFinalPrice && camMsg)camMsg.textContent='Payment cannot start because the final price has not been set.';
    else if(camMsg)camMsg.textContent='';
    camButton.onclick=async()=>{
      const phone=phoneInput?.value.trim()||'';
