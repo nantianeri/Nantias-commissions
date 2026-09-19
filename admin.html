@@ -187,13 +187,33 @@
   </details>
 </div>
 
+<div class="card" style="margin-top:20px" id="paymentProviderCard">
+  <h3>Payment Provider</h3>
+  <p class="muted">Choose the payment system used for newly accepted commissions. The existing manual system remains available as a fallback.</p>
+  <form id="paymentProviderForm" style="margin-top:16px">
+    <label>Active payment provider</label>
+    <select id="activePaymentProvider">
+      <option value="camerpay">CamerPay</option>
+      <option value="manual">Manual</option>
+    </select>
+    <div id="camerpayProviderSettings" class="card" style="margin-top:14px;background:rgba(255,255,255,.02)">
+      <strong>CamerPay payment settings</strong>
+      <p class="muted small" style="margin-top:5px">Your commission prices remain in USD. CamerPay currently processes this API payment in XAF. The exchange rate is fetched from CamerPay automatically when a client starts checkout — you do not enter or control the exchange rate.</p>
+      <div style="margin-top:12px"><strong>Provider rate</strong><div id="paymentExchangeRateDisplay" class="muted">Not fetched yet.</div></div>
+      <p class="muted small">The rate is used only to convert the already-approved USD final price into the XAF amount required by CamerPay. The USD price never changes.</p>
+    </div>
+    <button class="btn btn-primary" type="submit">Save Payment Provider</button>
+    <span id="paymentProviderMessage" class="muted" style="margin-left:10px"></span>
+  </form>
+</div>
+
 <div class="card" style="margin-top:20px">
   <h3>Payment Profile</h3>
-  <p class="muted">These are the recipient details shown to accepted clients in their private commission portal.</p>
+  <p class="muted">These recipient details are used only when Manual payment is active. CamerPay clients do not see these details.</p>
   <form id="paymentProfileForm" style="margin-top:16px">
     <label>Destination country</label><input id="paymentCountry" value="Cameroon" readonly>
-    <label>First name</label><input id="paymentFirstName" placeholder="Your Remitly recipient first name">
-    <label>Last name</label><input id="paymentLastName" placeholder="Your Remitly recipient last name">
+    <label>First name</label><input id="paymentFirstName" placeholder="Manual payment recipient first name">
+    <label>Last name</label><input id="paymentLastName" placeholder="Manual payment recipient last name">
     <label>Mobile phone number</label><input id="paymentPhone" inputmode="numeric" placeholder="Without +237">
     <label>Extra payment note (optional)</label><textarea id="paymentNote" placeholder="Any short note the client should know before paying"></textarea>
     <button class="btn btn-primary" type="submit">Save Payment Profile</button>
@@ -1113,7 +1133,7 @@
       ['Background', r.background], ['Custom complexity', r.custom_complexity],
       ['Urgent', r.urgent ? 'Yes' : 'No'], ['Requested deadline', r.requested_deadline],
       ['Deadline reason', r.deadline_reason], ['Estimated price', fmtMoney(r.estimated_price)],
-      ['Final price', fmtMoney(r.final_price)], ['Submitted', fmtDate(r.created_at)],
+      ['Final price', fmtMoney(r.final_price)], ['Payment provider at acceptance', r.payment_provider_at_acceptance], ['Locked payment amount', r.payment_amount != null ? `${Number(r.payment_amount).toLocaleString()} ${r.payment_currency||''}`.trim() : null], ['Payment rate snapshot', r.payment_exchange_rate], ['Submitted', fmtDate(r.created_at)],
       ['Description', r.description], ['Mood / lighting', r.preferred_mood_lighting],
       ['Additional information', r.additional_information]
     ];
@@ -1123,12 +1143,33 @@
   async function loadPaymentProfile() {
     const {data,error}=await client.from('payment_settings').select('*').eq('id',true).maybeSingle();
     if(error) return;
+    document.getElementById('activePaymentProvider').value=data?.active_provider||'manual';
+    const rateEl=document.getElementById('paymentExchangeRateDisplay');
+    if(rateEl) rateEl.textContent=data?.payment_exchange_rate ? `${Number(data.payment_exchange_rate).toFixed(4)} XAF per $1 (last provider rate cached)` : 'Rate is fetched automatically by CamerPay when checkout starts.';
+    const providerBox=document.getElementById('camerpayProviderSettings');
+    if(providerBox) providerBox.hidden=(data?.active_provider||'manual')!=='camerpay';
     document.getElementById('paymentCountry').value=data?.destination_country||'Cameroon';
     document.getElementById('paymentFirstName').value=data?.first_name||'';
     document.getElementById('paymentLastName').value=data?.last_name||'';
     document.getElementById('paymentPhone').value=data?.mobile_phone||'';
     document.getElementById('paymentNote').value=data?.payment_note||'';
   }
+
+  document.getElementById('activePaymentProvider')?.addEventListener('change',e=>{
+    const box=document.getElementById('camerpayProviderSettings');
+    if(box) box.hidden=e.target.value!=='camerpay';
+  });
+
+  document.getElementById('paymentProviderForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const msg=document.getElementById('paymentProviderMessage');
+    const provider=document.getElementById('activePaymentProvider').value;
+    msg.textContent='Saving…';msg.style.color='';
+    const {error}=await client.from('payment_settings').update({active_provider:provider}).eq('id',true);
+    if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
+    msg.textContent='Saved. '+(provider==='camerpay'?'CamerPay will fetch the provider rate automatically at checkout.':'New accepted commissions will use Manual payment.');
+    await loadPaymentProfile();
+  });
 
   function updateRequestStats(data){
     const rows=data||[];
@@ -1646,7 +1687,7 @@
   document.getElementById('paymentProfileForm').addEventListener('submit',async e=>{
     e.preventDefault();
     const msg=document.getElementById('paymentProfileMessage');
-    const payload={id:true,provider:'Remitly',destination_country:'Cameroon',payment_method:'Mobile Money',mobile_network:'MTN Mobile Money',first_name:document.getElementById('paymentFirstName').value.trim()||null,last_name:document.getElementById('paymentLastName').value.trim()||null,mobile_phone:document.getElementById('paymentPhone').value.trim()||null,payment_note:document.getElementById('paymentNote').value.trim()||null};
+    const payload={id:true,provider:'Manual',destination_country:'Cameroon',payment_method:'Mobile Money',mobile_network:'MTN Mobile Money',first_name:document.getElementById('paymentFirstName').value.trim()||null,last_name:document.getElementById('paymentLastName').value.trim()||null,mobile_phone:document.getElementById('paymentPhone').value.trim()||null,payment_note:document.getElementById('paymentNote').value.trim()||null};
     const {error}=await client.from('payment_settings').upsert(payload,{onConflict:'id'});
     if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
     msg.textContent='Payment profile saved.';msg.style.color='';

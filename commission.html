@@ -102,24 +102,38 @@
 <div class="card" hidden="" id="paymentCard" style="margin-top:18px">
 <h3 data-content-key="portal.payment_heading">Payment</h3>
 <div id="paymentRejectionMessage" class="card" hidden style="margin:12px 0;background:rgba(217,37,63,.06);border:1px solid rgba(217,37,63,.18);white-space:pre-wrap"></div>
-<p class="muted" data-content-key="portal.amount_label" id="paymentIntro">Your commission has been accepted. Please use the details below carefully.</p>
+<p class="muted" id="paymentIntro">Your commission has been accepted. Your final payment amount is shown below.</p>
 <div class="card" style="margin-top:14px;text-align:center;background:rgba(255,255,255,.04)">
 <div class="muted" data-content-key="portal.amount_label" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em">Amount to pay</div>
 <div id="paymentAmount" style="font-size:2.2rem;font-weight:800;margin-top:6px">$—</div>
 <div class="muted small" data-content-key="portal.amount_note" style="margin-top:5px">This is the final price set for your commission.</div>
+<div id="paymentProviderAmount" class="muted" style="margin-top:8px"></div>
 </div>
 <div class="portal-grid" id="paymentDetails" style="margin-top:14px"></div>
-<div class="card" style="margin-top:16px;background:rgba(255,255,255,.02)">
-<strong data-content-key="portal.remitly_heading">How to pay with Remitly</strong>
-<p class="muted" data-content-key="portal.remitly_intro" style="margin-top:8px">Remitly is an app and website used to send money internationally.</p>
+
+<div id="manualPaymentPanel" class="card" style="margin-top:16px;background:rgba(255,255,255,.02)">
+<strong>Manual payment</strong>
+<p class="muted" style="margin-top:8px">Use the recipient details below, then submit the payment claim after you have sent the payment.</p>
+</div>
+
+<div id="camerpayPaymentPanel" class="card" hidden style="margin-top:16px;background:rgba(255,255,255,.02)">
+<strong>Pay securely with CamerPay</strong>
+<p class="muted" style="margin-top:8px">CamerPay will open a secure checkout where you can choose an available payment method. Your payment is confirmed automatically after CamerPay sends a verified payment notification.</p>
+<label for="camerpayPhone" style="margin-top:12px">Phone number *</label>
+<input id="camerpayPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+237 6XX XX XX XX">
+<p class="muted small">Enter the phone number you will use for the payment. It is sent securely to CamerPay to initialize the transaction.</p>
+<button class="btn btn-primary" id="camerpayPayButton" style="margin-top:12px" type="button">Pay Now</button>
+<p aria-live="polite" class="muted" id="camerpayMessage"></p>
+</div>
+
+<div id="manualInstructionsPanel" class="card" style="margin-top:16px;background:rgba(255,255,255,.02)">
+<strong data-content-key="portal.remitly_heading">Manual payment instructions</strong>
+<p class="muted" data-content-key="portal.remitly_intro" style="margin-top:8px">Use the recipient details shown above, then review everything before sending.</p>
 <ol class="muted" style="margin:10px 0 0 20px">
-<li data-content-key="portal.remitly_step1">Open Remitly using the button below.</li>
-<li>Select <strong id="paymentDestination">Cameroon</strong> as the destination country.</li>
-<li>Choose <strong id="paymentMethod">Mobile Money</strong> and select <strong id="paymentNetwork">MTN Mobile Money</strong>.</li>
-<li data-content-key="portal.remitly_step4">Enter the recipient details shown above, then review everything before sending.</li>
+<li>Use the payment method shown above.</li>
+<li>Enter the recipient details shown above.</li>
+<li>Review the amount and recipient information carefully before sending.</li>
 </ol>
-<a class="btn btn-primary" data-content-key="portal.remitly_button" href="https://www.remitly.com/" id="remitlyButton" rel="noopener" style="margin-top:16px" target="_blank">Open Remitly →</a>
-<p class="muted small" data-content-key="portal.remitly_note" style="margin-top:10px">Don't have the Remitly app? You can use Remitly in your browser or download the app.</p>
 </div>
 <div class="muted" id="paymentNoteBox" style="white-space:pre-wrap;margin-top:14px"></div>
 <div class="card" data-content-key="portal.payment_warning" id="paymentWarning" style="margin-top:14px;background:rgba(255,255,255,.02)">⚠️ Before sending, double-check: <strong id="warningCountry">Cameroon</strong> · <strong id="warningMethod">Mobile Money</strong> · <strong id="warningNetwork">MTN Mobile Money</strong> · recipient name · recipient phone number.</div>
@@ -133,5 +147,5 @@
 </div>
 </div></section></main>
 <footer><div class="container"><strong data-content-key="global.brand">NANTIA</strong><br/>Character Artist &amp; Illustrator<br/><small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small></div></footer>
-<script src="/js/content.js?v=8.0"></script><script src="/js/client-portal.js?v=16.24"></script>
+<script src="/js/content.js?v=8.0"></script><script src="/js/client-portal.js?v=16.60"></script>
 </body></html>
