@@ -22,6 +22,18 @@ function getClient(){
  return window.supabase.createClient(cfg.url,cfg.anonKey);
 }
 function getToken(){return new URLSearchParams(location.search).get('key')||sessionStorage.getItem('nantia_client_portal_token')||''}
+async function functionErrorMessage(error,data){
+ if(data?.error)return String(data.error);
+ try{
+   const response=error?.context;
+   if(response&&typeof response.clone==='function'){
+     const body=await response.clone().json().catch(()=>null);
+     if(body?.error)return String(body.error);
+     if(body?.message)return String(body.message);
+   }
+ }catch(_){}
+ return error?.message||'Unable to start the payment right now.';
+}
 function setAccessMessage(t,error){const e=document.getElementById('accessMessage');if(!e)return;e.textContent=t||'';e.style.color=error?'var(--pink)':''}
 
 function timeline(status){
@@ -206,22 +218,25 @@ function renderPayment(r){
 
  const provider=(r.payment_provider||'manual').toLowerCase();
  const isCamerPay=provider==='camerpay';
+ document.body.classList.toggle('camerpay-client-mode', isCamerPay);
  const lockedAmount=r.payment_amount;
  const providerAmount=document.getElementById('paymentProviderAmount');
- if(providerAmount){
-   providerAmount.textContent=isCamerPay && lockedAmount!=null ? `Secure checkout amount: ${xaf(lockedAmount)}` : '';
- }
+ if(providerAmount){ providerAmount.textContent=''; providerAmount.hidden=isCamerPay; providerAmount.style.display=isCamerPay?'none':''; }
 
  const country=r.payment_country||'Cameroon';
  const method=r.payment_method||'Mobile Money';
  const network=r.mobile_network||'MTN Mobile Money';
  const details=isCamerPay
-   ? [['Payment provider','CamerPay'],['Payment currency',r.payment_currency||'XAF'],['Payment amount',lockedAmount!=null?xaf(lockedAmount):'Calculated by CamerPay at checkout']]
+   ? []
    : [['Payment provider',provider==='manual'?'Manual payment':provider],['Destination country',country],['Delivery method',method],['Mobile network',network],['First name',r.payment_first_name],['Last name',r.payment_last_name],['Mobile phone number',r.payment_mobile_phone]];
  const detailsBox=document.getElementById('paymentDetails');
  if(detailsBox){
    detailsBox.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v||'Not configured yet')}</div>${v&&['First name','Last name','Mobile phone number'].includes(k)?`<button type="button" class="btn" data-copy="${esc(v)}" style="margin-top:8px">Copy</button>`:''}</div>`).join('');
    detailsBox.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copyValue(b.dataset.copy)));
+ }
+ if(isCamerPay){
+   if(detailsBox) detailsBox.innerHTML='';
+   if(note) note.textContent='';
  }
  const note=document.getElementById('paymentNoteBox');
  if(note)note.textContent=isCamerPay?'':(r.payment_note||'');
@@ -229,7 +244,7 @@ function renderPayment(r){
  if(rejectionBox){ rejectionBox.hidden=r.status!=='PAYMENT_REJECTED'; rejectionBox.textContent=r.status==='PAYMENT_REJECTED'?(r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new claim.'):''; }
  const intro=document.getElementById('paymentIntro');
  if(intro)intro.textContent=isCamerPay
-   ?(r.status==='PAYMENT_CLAIMED'?'Your payment has been submitted and is being checked by the payment provider.':r.status==='PAYMENT_REJECTED'?'The previous payment attempt was not confirmed. You can start a new payment attempt below.':(String(r.last_payment_status||'').toLowerCase()==='failed'||String(r.last_payment_status||'').toLowerCase()==='cancelled')?'Your previous CamerPay payment attempt was not completed. You can start a new payment attempt below.':'Your commission has been accepted. Complete the secure CamerPay checkout below.')
+   ?(r.status==='PAYMENT_CLAIMED'?'Your payment has been submitted and is being checked by the payment provider.':r.status==='PAYMENT_REJECTED'?'The previous payment attempt was not confirmed. You can start a new payment attempt below.':(String(r.payment_transaction_status||'').toLowerCase()==='failed'||String(r.payment_transaction_status||'').toLowerCase()==='cancelled')?'Your previous CamerPay payment attempt was not completed. You can start a new payment attempt below.':'Your commission has been accepted. Complete the secure CamerPay checkout below.')
    :(r.status==='PAYMENT_CLAIMED'?'Your payment claim has been received. The payment details below are shown for reference.':r.status==='PAYMENT_REJECTED'?'Your payment claim was not verified. Please review the message below, correct the issue, and submit a new claim.':'Your commission has been accepted. Please pay the final amount using the manual payment instructions below.');
 
  const manualPanel=document.getElementById('manualPaymentPanel');
@@ -246,7 +261,7 @@ function renderPayment(r){
    if(manualIntro)manualIntro.textContent='Use the recipient details shown above, then review everything before sending.';
  }
  if(warning)warning.hidden=isCamerPay;
- if(paidButton)paidButton.hidden=isCamerPay;
+ if(paidButton){paidButton.hidden=isCamerPay; paidButton.style.display=isCamerPay?'none':'';}
  if(camPanel)camPanel.hidden=!isCamerPay;
 
  if(!isCamerPay){
@@ -271,7 +286,7 @@ function renderPayment(r){
        const c=getClient();
        const {data,error}=await c.functions.invoke('payment-initiate',{body:{access_token:getToken(),payment_method:''}});
        if(error||!data?.checkout_url){
-         if(camMsg)camMsg.textContent=data?.error||error?.message||'Unable to start the payment.';
+         if(camMsg)camMsg.textContent=await functionErrorMessage(error,data);
          camButton.disabled=false;return;
        }
        location.href=data.checkout_url;
