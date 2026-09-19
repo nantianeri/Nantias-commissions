@@ -198,9 +198,28 @@
     </select>
     <div id="camerpayProviderSettings" class="card" style="margin-top:14px;background:rgba(255,255,255,.02)">
       <strong>CamerPay payment settings</strong>
-      <p class="muted small" style="margin-top:5px">Your commission prices remain in USD. CamerPay currently processes this API payment in XAF. The exchange rate is fetched from CamerPay automatically when a client starts checkout — you do not enter or control the exchange rate.</p>
-      <div style="margin-top:12px"><strong>Provider rate</strong><div id="paymentExchangeRateDisplay" class="muted">Not fetched yet.</div></div>
-      <p class="muted small">The rate is used only to convert the already-approved USD final price into the XAF amount required by CamerPay. The USD price never changes.</p>
+      <p class="muted small" style="margin-top:5px">Commission prices stay in USD. This section controls only the USD → XAF conversion used internally for CamerPay checkout.</p>
+      <div style="display:grid;gap:12px;margin-top:14px">
+        <label>Exchange-rate mode</label>
+        <select id="fxMode"><option value="automatic">Automatic</option><option value="manual">Manual Override</option></select>
+        <div id="fxAutomaticFields" style="display:grid;gap:12px">
+          <label>Automatic adjustment (%)<input id="fxAdjustment" type="number" step="0.1" min="-25" max="25" value="3.5"></label>
+          <div><strong>Reference rate</strong><div id="fxReferenceRateDisplay" class="muted">Not fetched yet.</div></div>
+          <div><strong>Calculated payment rate</strong><div id="paymentExchangeRateDisplay" class="muted">Not calculated yet.</div></div>
+        </div>
+        <div id="fxManualFields" style="display:none">
+          <label>Manual payment rate (XAF per $1)<input id="fxManualRate" type="number" step="0.0001" min="300" max="1000" placeholder="e.g. 620"></label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label>Minimum rate (optional)<input id="fxMinRate" type="number" step="0.0001" min="300" max="1000" placeholder="No minimum"></label>
+          <label>Maximum rate (optional)<input id="fxMaxRate" type="number" step="0.0001" min="300" max="1000" placeholder="No maximum"></label>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button id="refreshFxRateBtn" class="btn" type="button">Refresh Now</button>
+          <span id="fxLastUpdated" class="muted small">No successful refresh yet.</span>
+        </div>
+        <p class="muted small">Automatic mode gets a reference USD/XAF rate from Frankfurter and applies your adjustment. New payments calculate the rate server-side; the resulting rate is locked to that commission. A cached rate can be used if the reference service is temporarily unavailable.</p>
+      </div>
     </div>
     <button class="btn btn-primary" type="submit">Save Payment Provider</button>
     <span id="paymentProviderMessage" class="muted" style="margin-left:10px"></span>
@@ -1204,14 +1223,74 @@
     return '<div class="request-detail-grid">'+rows.map(([k,v])=>`<div><strong>${esc(k)}</strong><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(v ?? '—')}</div></div>`).join('')+'</div>';
   }
 
+  function renderFxMode(){
+    const mode=document.getElementById('fxMode')?.value||'automatic';
+    const a=document.getElementById('fxAutomaticFields');
+    const m=document.getElementById('fxManualFields');
+    if(a) a.style.display=mode==='automatic'?'grid':'none';
+    if(m) m.style.display=mode==='manual'?'block':'none';
+  }
+
+  function renderFxRateValues(data){
+    const ref=document.getElementById('fxReferenceRateDisplay');
+    const calc=document.getElementById('paymentExchangeRateDisplay');
+    const updated=document.getElementById('fxLastUpdated');
+    if(ref){
+      ref.textContent=data?.fx_reference_rate ? `${Number(data.fx_reference_rate).toFixed(4)} XAF per $1${data?.fx_reference_rate_date ? ` · source date ${data.fx_reference_rate_date}` : ''}` : 'Not fetched yet.';
+    }
+    if(calc){
+      calc.textContent=data?.payment_exchange_rate ? `${Number(data.payment_exchange_rate).toFixed(4)} XAF per $1` : 'Not calculated yet.';
+    }
+    if(updated){
+      updated.textContent=data?.fx_last_refreshed_at ? `Last updated ${new Date(data.fx_last_refreshed_at).toLocaleString()}` : 'No successful refresh yet.';
+    }
+  }
+
+  async function refreshFxRate(){
+    const btn=document.getElementById('refreshFxRateBtn');
+    const status=document.getElementById('fxLastUpdated');
+    if(btn) btn.disabled=true;
+    if(status) status.textContent='Refreshing reference rate…';
+    try{
+      const response=await fetch('https://api.frankfurter.dev/v2/rate/usd/xaf',{headers:{Accept:'application/json'}});
+      const body=await response.json();
+      if(!response.ok || !Number.isFinite(Number(body?.rate))) throw new Error(body?.message||'Reference rate could not be retrieved.');
+      const ref=Number(body.rate);
+      const adjustment=Number(document.getElementById('fxAdjustment')?.value ?? 3.5);
+      const min=Number(document.getElementById('fxMinRate')?.value);
+      const max=Number(document.getElementById('fxMaxRate')?.value);
+      let calc=ref*(1+(Number.isFinite(adjustment)?adjustment:3.5)/100);
+      if(Number.isFinite(min) && min>300) calc=Math.max(calc,min);
+      if(Number.isFinite(max) && max>300) calc=Math.min(calc,max);
+      calc=Math.round(calc*10000)/10000;
+      const {error}=await client.from('payment_settings').update({payment_exchange_rate:calc,fx_reference_rate:ref,fx_reference_rate_date:body.date||null,fx_reference_provider:'Frankfurter',fx_last_refreshed_at:new Date().toISOString()}).eq('id',true);
+      if(error) throw error;
+      renderFxRateValues({fx_reference_rate:ref,fx_reference_rate_date:body.date,payment_exchange_rate:calc,fx_last_refreshed_at:new Date().toISOString()});
+    }catch(err){
+      if(status) status.textContent=`Refresh failed: ${err.message||err}`;
+    }finally{
+      if(btn) btn.disabled=false;
+    }
+  }
+
   async function loadPaymentProfile() {
     const {data,error}=await client.from('payment_settings').select('*').eq('id',true).maybeSingle();
     if(error) return;
     document.getElementById('activePaymentProvider').value=data?.active_provider||'manual';
-    const rateEl=document.getElementById('paymentExchangeRateDisplay');
-    if(rateEl) rateEl.textContent=data?.payment_exchange_rate ? `${Number(data.payment_exchange_rate).toFixed(4)} XAF per $1 (last provider rate cached)` : 'Rate is fetched automatically by CamerPay when checkout starts.';
     const providerBox=document.getElementById('camerpayProviderSettings');
     if(providerBox) providerBox.hidden=(data?.active_provider||'manual')!=='camerpay';
+    const fxMode=document.getElementById('fxMode');
+    const fxAdjustment=document.getElementById('fxAdjustment');
+    const fxManualRate=document.getElementById('fxManualRate');
+    const fxMinRate=document.getElementById('fxMinRate');
+    const fxMaxRate=document.getElementById('fxMaxRate');
+    if(fxMode) fxMode.value=data?.fx_mode||'automatic';
+    if(fxAdjustment) fxAdjustment.value=data?.fx_adjustment_percent ?? 3.5;
+    if(fxManualRate) fxManualRate.value=data?.fx_manual_rate ?? '';
+    if(fxMinRate) fxMinRate.value=data?.fx_min_rate ?? '';
+    if(fxMaxRate) fxMaxRate.value=data?.fx_max_rate ?? '';
+    renderFxMode();
+    renderFxRateValues(data);
     document.getElementById('paymentCountry').value=data?.destination_country||'Cameroon';
     document.getElementById('paymentFirstName').value=data?.first_name||'';
     document.getElementById('paymentLastName').value=data?.last_name||'';
@@ -1223,15 +1302,39 @@
     const box=document.getElementById('camerpayProviderSettings');
     if(box) box.hidden=e.target.value!=='camerpay';
   });
+  document.getElementById('fxMode')?.addEventListener('change',renderFxMode);
+  document.getElementById('refreshFxRateBtn')?.addEventListener('click',refreshFxRate);
 
   document.getElementById('paymentProviderForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
     const msg=document.getElementById('paymentProviderMessage');
     const provider=document.getElementById('activePaymentProvider').value;
     msg.textContent='Saving…';msg.style.color='';
-    const {error}=await client.from('payment_settings').update({active_provider:provider}).eq('id',true);
+    const fxMode=document.getElementById('fxMode')?.value||'automatic';
+    const fxAdjustment=Number(document.getElementById('fxAdjustment')?.value ?? 3.5);
+    const manualRaw=document.getElementById('fxManualRate')?.value.trim();
+    const minRaw=document.getElementById('fxMinRate')?.value.trim();
+    const maxRaw=document.getElementById('fxMaxRate')?.value.trim();
+    const payload={
+      active_provider:provider,
+      fx_mode:fxMode,
+      fx_adjustment_percent:Number.isFinite(fxAdjustment)?fxAdjustment:3.5,
+      fx_manual_rate:manualRaw?Number(manualRaw):null,
+      fx_min_rate:minRaw?Number(minRaw):null,
+      fx_max_rate:maxRaw?Number(maxRaw):null
+    };
+    if(fxMode==='manual' && (!payload.fx_manual_rate || payload.fx_manual_rate<=300 || payload.fx_manual_rate>=1000)){
+      msg.textContent='Enter a valid manual rate between 300 and 1000 XAF per $1.';msg.style.color='var(--pink)';return;
+    }
+    if(payload.fx_min_rate && payload.fx_max_rate && payload.fx_min_rate>payload.fx_max_rate){
+      msg.textContent='Minimum rate cannot be greater than maximum rate.';msg.style.color='var(--pink)';return;
+    }
+    if(payload.fx_adjustment_percent < -25 || payload.fx_adjustment_percent > 25){
+      msg.textContent='Adjustment must be between -25% and +25%.';msg.style.color='var(--pink)';return;
+    }
+    const {error}=await client.from('payment_settings').update(payload).eq('id',true);
     if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
-    msg.textContent='Saved. '+(provider==='camerpay'?'CamerPay will fetch the provider rate automatically at checkout.':'New accepted commissions will use Manual payment.');
+    msg.textContent='Saved. '+(provider==='camerpay'?'CamerPay will use these exchange-rate settings for new payments.':'New accepted commissions will use Manual payment.');
     await loadPaymentProfile();
   });
 
