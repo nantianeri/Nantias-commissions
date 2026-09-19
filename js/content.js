@@ -3,11 +3,11 @@
   document.documentElement.dataset.contentPending='true';
   async function loadSiteContent(){
     const cfg=window.NANTIA_SUPABASE||{};
-    if(!window.supabase || !cfg.url || !cfg.anonKey){document.documentElement.dataset.contentPending='false';return;}
+    if(!window.supabase || !cfg.url || !cfg.anonKey){document.documentElement.dataset.contentPending='false';document.dispatchEvent(new CustomEvent('nantia:content-loaded'));return;}
     try{
       const client=window.supabase.createClient(cfg.url,cfg.anonKey);
       const {data,error}=await client.from('site_content').select('key,value');
-      if(error || !data){document.documentElement.dataset.contentPending='false';return;}
+      if(error || !data){document.documentElement.dataset.contentPending='false';document.dispatchEvent(new CustomEvent('nantia:content-loaded'));return;}
       const map={}; data.forEach(row=>{map[row.key]=row.value??''});
       document.querySelectorAll('[data-content-href-key]').forEach(el=>{
         const hrefKey=el.dataset.contentHrefKey;
@@ -32,6 +32,7 @@
       });
       document.documentElement.dataset.contentLoaded='true';
       document.documentElement.dataset.contentPending='false';
+      document.dispatchEvent(new CustomEvent('nantia:content-loaded'));
     }catch(_){/* Keep built-in fallback copy. */
       document.documentElement.dataset.contentPending='false';
     }

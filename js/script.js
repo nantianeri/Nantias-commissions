@@ -56,7 +56,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  const countryPicker=initCountryPicker();
  const form=document.querySelector('#commissionForm');if(!form)return;
  const countryWrap=document.getElementById('countryPicker'), countryLabel=document.querySelector('label[for=countryButton]'), countryNote=document.querySelector('.country-availability-note');
- const hideCountryForProvider=()=>{const hide=NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'&&NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap)countryWrap.hidden=hide;if(countryLabel)countryLabel.hidden=hide;if(countryNote)countryNote.hidden=hide;if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}};
+ const hideCountryForProvider=()=>{const hide=NANTIA_PAYMENT_CONFIG.active_provider==='camerpay' || NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap)countryWrap.hidden=hide;if(countryLabel)countryLabel.hidden=hide;if(countryNote)countryNote.hidden=hide;if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}};
  hideCountryForProvider();
  const q=getParams();
  const type=document.querySelector('#commissionType'),fmt=document.querySelector('#format'),formatLabel=document.querySelector('#formatLabel'),selectedNote=document.querySelector('#selectedFormatNote');
