@@ -221,6 +221,17 @@
   </form>
 </div>
 
+<div class="card" style="margin-top:20px" id="providerContentCard">
+  <h3>Provider-Specific Public Content</h3>
+  <p class="muted">Edit the public <strong>FAQ</strong>, <strong>How It Works</strong>, and <strong>TOS</strong> separately for each payment provider. The active provider controls what clients see. Your CamerPay text and Manual text are stored independently.</p>
+  <div style="display:grid;gap:12px;margin-top:16px">
+    <label>Provider to edit</label>
+    <select id="providerContentProvider"><option value="camerpay">CamerPay</option><option value="manual">Manual</option></select>
+    <span id="providerContentMessage" class="muted" aria-live="polite">Loading provider content…</span>
+  </div>
+  <div id="providerContentEditor" style="margin-top:14px"></div>
+</div>
+
 <div class="card" style="margin-top:20px">
   <div class="section-head" style="align-items:center">
     <div><h3>Commission Queue</h3><p class="muted">Paid commissions waiting to be started, plus commissions currently in progress. Position is based on payment confirmation time.</p></div>
@@ -1124,6 +1135,59 @@
     el.style.color=error?'var(--pink)':'';
   }
 
+  let providerContentRows = [];
+
+  function providerContentMessage(text,error=false){
+    const el=document.getElementById('providerContentMessage');
+    if(!el)return; el.textContent=text||''; el.style.color=error?'var(--pink)':'';
+  }
+
+  function renderProviderContent(){
+    const box=document.getElementById('providerContentEditor'); if(!box)return;
+    const groups={}; providerContentRows.forEach(row=>{(groups[row.page] ||= []).push(row);});
+    box.innerHTML=Object.entries(groups).map(([page,rows])=>`<details open class="content-group" style="margin-top:14px;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--surface-2)">
+      <summary style="cursor:pointer;font-weight:800">${esc(page)} <span class="muted small">(${rows.length} fields)</span></summary>
+      <div class="content-fields" style="display:grid;gap:14px;margin-top:16px">
+        ${rows.sort((a,b)=>a.sort_order-b.sort_order).map(row=>{
+          const id='provider-content-'+esc(row.provider)+'-'+esc(row.key).replace(/[^a-zA-Z0-9_-]/g,'-');
+          return `<div class="content-field" style="display:grid;gap:8px">
+            <label for="${id}">${esc(row.label)}</label>
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <div style="flex:1;min-width:0">${row.field_type==='textarea'
+                ? `<textarea id="${id}" data-provider-content-key="${esc(row.key)}" rows="5">${esc(row.value)}</textarea>`
+                : `<input id="${id}" data-provider-content-key="${esc(row.key)}" type="${row.field_type==='url'?'url':'text'}" value="${esc(row.value)}">`}</div>
+              <button class="btn btn-primary provider-content-save-btn" type="button" data-provider-content-save-key="${esc(row.key)}">Save</button>
+            </div>
+            <span class="muted small" data-provider-content-status="${esc(row.key)}" aria-live="polite"></span>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`).join('');
+  }
+
+  async function loadProviderContent(){
+    const provider=document.getElementById('providerContentProvider')?.value||'manual';
+    providerContentMessage(`Loading ${provider==='camerpay'?'CamerPay':'Manual'} content…`);
+    const {data,error}=await client.from('provider_content').select('*').eq('provider',provider).order('page').order('sort_order');
+    if(error){providerContentMessage(error.message,true);return;}
+    providerContentRows=data||[]; renderProviderContent(); providerContentMessage(`${provider==='camerpay'?'CamerPay':'Manual'} content loaded. Edit any field and save it.`);
+  }
+
+  async function saveProviderContent(key,button){
+    const provider=document.getElementById('providerContentProvider')?.value||'manual';
+    const input=document.querySelector(`[data-provider-content-key="${CSS.escape(key)}"]`);
+    const status=document.querySelector(`[data-provider-content-status="${CSS.escape(key)}"]`);
+    if(!input||!button)return;
+    const old=button.textContent; button.disabled=true; button.textContent='Saving…'; if(status)status.textContent='Saving…';
+    const {error}=await client.from('provider_content').update({value:input.value,updated_at:new Date().toISOString()}).eq('provider',provider).eq('key',key);
+    if(error){if(status){status.textContent=`Could not save: ${error.message}`;status.style.color='var(--pink)';}button.disabled=false;button.textContent=old;return;}
+    providerContentRows=providerContentRows.map(r=>r.key===key?{...r,value:input.value}:r);
+    if(status){status.textContent='Saved.';status.style.color='';}button.disabled=false;button.textContent='Saved';setTimeout(()=>{if(button.isConnected)button.textContent=old;},1200);
+  }
+
+  document.getElementById('providerContentProvider')?.addEventListener('change',loadProviderContent);
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-provider-content-save-key]');if(b)saveProviderContent(b.dataset.providerContentSaveKey,b);});
+
   function requestDetailRows(r) {
     const rows = [
       ['Preferred contact', r.preferred_contact_method ? (String(r.preferred_contact_method).replaceAll('_',' ')+': '+(r.preferred_contact_value||'—')) : (r.instagram_username ? 'Instagram: '+r.instagram_username : '—')], ['Email', r.email],
@@ -1702,10 +1766,11 @@
   });
 
   await loadPaymentProfile();
+  await loadProviderContent();
   await loadDiscounts();
   await loadWebsiteRequests();
   await loadDashboard();
 })();
 </script>
-<script src="/js/script.js?v=7.5"></script>
+<script src="/js/script.js?v=16.65"></script>
 </body></html>
