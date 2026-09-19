@@ -172,6 +172,23 @@ async function loadFinalDelivery(token){
  }catch(_){card.hidden=true;}
 }
 
+function renderQueuePosition(position,status){
+ const card=document.getElementById('queuePositionCard');
+ const text=document.getElementById('queuePositionText');
+ const active=['PAID','IN_PROGRESS'].includes(status);
+ if(!active || position==null){if(card)card.hidden=true;return;}
+ if(card)card.hidden=false;
+ if(text)text.textContent=`Queue position #${position}`;
+}
+async function loadQueuePosition(token,status){
+ if(!['PAID','IN_PROGRESS'].includes(status)){renderQueuePosition(null,status);return;}
+ const client=getClient();
+ if(!client){renderQueuePosition(null,status);return;}
+ const {data,error}=await client.rpc('get_client_queue_position',{p_access_token:token});
+ if(error){renderQueuePosition(null,status);return;}
+ renderQueuePosition(data,status);
+}
+
 function renderPayment(r){
  const card=document.getElementById('paymentCard');
  if(!card){console.error('Client portal: paymentCard is missing from commission.html.');return;}
@@ -296,6 +313,36 @@ function renderPayment(r){
      await loadByToken(getToken());
    };
  }
+}
+
+function renderPortal(r, token){
+ const info=statusInfo[r.status]||{label:r.status||'Unknown',message:'Please check back later for updates.'};
+ const requestTitle=document.getElementById('portalRequestTitle');if(requestTitle)requestTitle.textContent='#'+r.request_number;
+ const portalStatus=document.getElementById('portalStatus');if(portalStatus)portalStatus.textContent=info.label.toUpperCase();
+ const portalMessage=document.getElementById('portalMessage');if(portalMessage)portalMessage.textContent=info.message;
+ const details=[
+  ['Commission',r.commission_type],['Format',r.format],['Characters',r.character_count],
+  ['Usage',r.usage_type],['Background',r.background],['Urgent',r.urgent?'Yes':'No'],
+  ['Requested deadline',r.requested_deadline?date(r.requested_deadline):'—'],
+  ['Estimated price',money(r.estimated_price)],['Final price',money(r.final_price)],
+  ['Submitted',date(r.created_at)]
+ ];
+ const portalDetails=document.getElementById('portalDetails');if(portalDetails)portalDetails.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v??'—')}</div></div>`).join('');
+ renderTimeline(r.status);
+ renderNextStep(r.status);
+ loadUpdates(token);
+ finalDeliveryReady=false;
+ loadFinalDelivery(token).then(()=>loadClientReview(token,r.status));
+ renderQueuePosition(null,r.status);
+ loadQueuePosition(token,r.status);
+ renderPayment(r);
+ const notice=document.getElementById('portalNoticeCard');
+ const title=document.getElementById('portalNoticeTitle'), text=document.getElementById('portalNoticeText');
+ if(notice&&title&&text&&r.status==='DECLINED'&&r.decline_message){notice.hidden=false;title.textContent='Message about this request';text.textContent=r.decline_message}
+ else if(notice&&title&&text&&r.status==='ACCEPTED_AWAITING_PAYMENT'&&r.payment_instructions){notice.hidden=false;title.textContent='Payment information';text.textContent=r.payment_instructions}
+ else if(notice) notice.hidden=true;
+ const accessCard=document.getElementById('accessCard');if(accessCard)accessCard.hidden=true;
+ const portalCard=document.getElementById('portalCard');if(portalCard)portalCard.hidden=false;
 }
 
 async function loadByToken(token){
