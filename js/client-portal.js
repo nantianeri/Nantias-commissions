@@ -13,6 +13,7 @@ const statusInfo={
 };
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const money=v=>v==null||v===''?'—':'$'+Number(v).toFixed(2);
+const xaf=v=>v==null||v===''?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+' XAF';
 const date=v=>v?new Date(v).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}):'—';
 
 function getClient(){
@@ -179,50 +180,97 @@ function renderPayment(r){
  card.hidden=false;
 
  const finalPrice=r.final_price;
- const amount=document.getElementById('paymentAmount');
  const hasFinalPrice=finalPrice!==null && finalPrice!==undefined && finalPrice!=='';
+ const amount=document.getElementById('paymentAmount');
  if(amount){
    amount.textContent=hasFinalPrice?money(finalPrice):'Final price not set';
    amount.setAttribute('aria-label',hasFinalPrice?`Amount to pay ${money(finalPrice)}`:'Final price not set');
  }
 
- const provider=r.payment_provider||'Remitly';
+ const provider=(r.payment_provider||'manual').toLowerCase();
+ const isCamerPay=provider==='camerpay';
+ const lockedAmount=r.payment_amount;
+ const providerAmount=document.getElementById('paymentProviderAmount');
+ if(providerAmount){
+   providerAmount.textContent=isCamerPay && lockedAmount!=null ? `CamerPay payment amount: ${xaf(lockedAmount)}` : '';
+ }
+
  const country=r.payment_country||'Cameroon';
  const method=r.payment_method||'Mobile Money';
  const network=r.mobile_network||'MTN Mobile Money';
- const details=[
-  ['Payment provider',provider],
-  ['Destination country',country],
-  ['Delivery method',method],
-  ['Mobile network',network],
-  ['First name',r.payment_first_name],
-  ['Last name',r.payment_last_name],
-  ['Mobile phone number',r.payment_mobile_phone]
- ];
+ const details=isCamerPay
+   ? [['Payment provider','CamerPay'],['Payment currency',r.payment_currency||'XAF'],['Payment amount',lockedAmount!=null?xaf(lockedAmount):'Not configured yet']]
+   : [['Payment provider',provider==='manual'?'Manual payment':provider],['Destination country',country],['Delivery method',method],['Mobile network',network],['First name',r.payment_first_name],['Last name',r.payment_last_name],['Mobile phone number',r.payment_mobile_phone]];
  const detailsBox=document.getElementById('paymentDetails');
  if(detailsBox){
    detailsBox.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v||'Not configured yet')}</div>${v&&['First name','Last name','Mobile phone number'].includes(k)?`<button type="button" class="btn" data-copy="${esc(v)}" style="margin-top:8px">Copy</button>`:''}</div>`).join('');
    detailsBox.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copyValue(b.dataset.copy)));
  }
  const note=document.getElementById('paymentNoteBox');
- if(note)note.textContent=r.payment_note||'';
+ if(note)note.textContent=isCamerPay?'':(r.payment_note||'');
  const rejectionBox=document.getElementById('paymentRejectionMessage');
  if(rejectionBox){ rejectionBox.hidden=r.status!=='PAYMENT_REJECTED'; rejectionBox.textContent=r.status==='PAYMENT_REJECTED'?(r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new claim.'):''; }
  const intro=document.getElementById('paymentIntro');
- if(intro)intro.textContent=
-   r.status==='PAYMENT_CLAIMED'
-   ?'Your payment claim has been received. The payment details below are shown for reference.'
-   :r.status==='PAYMENT_REJECTED'
-   ?'Your payment claim was not verified. Please review the message below, correct the issue, and submit a new claim.'
-   :'Your commission has been accepted. Please pay the final amount using the Remitly instructions below.';
- const destination=document.getElementById('paymentDestination');if(destination)destination.textContent=country;
- const paymentMethod=document.getElementById('paymentMethod');if(paymentMethod)paymentMethod.textContent=method;
- const paymentNetwork=document.getElementById('paymentNetwork');if(paymentNetwork)paymentNetwork.textContent=network;
- const warningCountry=document.getElementById('warningCountry');if(warningCountry)warningCountry.textContent=country;
- const warningMethod=document.getElementById('warningMethod');if(warningMethod)warningMethod.textContent=method;
- const warningNetwork=document.getElementById('warningNetwork');if(warningNetwork)warningNetwork.textContent=network;
+ if(intro)intro.textContent=isCamerPay
+   ?(r.status==='PAYMENT_CLAIMED'?'Your payment has been submitted and is being checked by the payment provider.':r.status==='PAYMENT_REJECTED'?'The previous payment attempt was not confirmed. You can start a new payment attempt below.':(lastPaymentStatus==='failed'||lastPaymentStatus==='cancelled')?'Your previous CamerPay payment attempt was not completed. You can start a new payment attempt below.':'Your commission has been accepted. Complete the secure CamerPay checkout below.')
+   :(r.status==='PAYMENT_CLAIMED'?'Your payment claim has been received. The payment details below are shown for reference.':r.status==='PAYMENT_REJECTED'?'Your payment claim was not verified. Please review the message below, correct the issue, and submit a new claim.':'Your commission has been accepted. Please pay the final amount using the manual payment instructions below.');
 
- const btn=document.getElementById('paidButton'), msg=document.getElementById('paymentMessage');
+ const manualPanel=document.getElementById('manualPaymentPanel');
+ const manualInstructions=document.getElementById('manualInstructionsPanel');
+ const warning=document.getElementById('paymentWarning');
+ const paidButton=document.getElementById('paidButton');
+ const camPanel=document.getElementById('camerpayPaymentPanel');
+ if(manualPanel)manualPanel.hidden=isCamerPay;
+ if(manualInstructions)manualInstructions.hidden=isCamerPay;
+ if(!isCamerPay){
+   const manualHeading=manualInstructions?.querySelector('[data-content-key=\"portal.remitly_heading\"]');
+   const manualIntro=manualInstructions?.querySelector('[data-content-key=\"portal.remitly_intro\"]');
+   if(manualHeading)manualHeading.textContent='Manual payment instructions';
+   if(manualIntro)manualIntro.textContent='Use the recipient details shown above, then review everything before sending.';
+ }
+ if(warning)warning.hidden=isCamerPay;
+ if(paidButton)paidButton.hidden=isCamerPay;
+ if(camPanel)camPanel.hidden=!isCamerPay;
+
+ if(!isCamerPay){
+   const destination=document.getElementById('paymentDestination');if(destination)destination.textContent=country;
+   const paymentMethod=document.getElementById('paymentMethod');if(paymentMethod)paymentMethod.textContent=method;
+   const paymentNetwork=document.getElementById('paymentNetwork');if(paymentNetwork)paymentNetwork.textContent=network;
+   const warningCountry=document.getElementById('warningCountry');if(warningCountry)warningCountry.textContent=country;
+   const warningMethod=document.getElementById('warningMethod');if(warningMethod)warningMethod.textContent=method;
+   const warningNetwork=document.getElementById('warningNetwork');if(warningNetwork)warningNetwork.textContent=network;
+ }
+
+ const camButton=document.getElementById('camerpayPayButton');
+ const camMsg=document.getElementById('camerpayMessage');
+ if(isCamerPay && camButton){
+   const phoneInput=document.getElementById('camerpayPhone');
+   camButton.disabled=r.status==='PAYMENT_CLAIMED' || !hasFinalPrice || lockedAmount==null;
+   if(r.status==='PAYMENT_CLAIMED' && camMsg)camMsg.textContent='Your payment is being confirmed. You do not need to start another payment.';
+   else if(!hasFinalPrice || lockedAmount==null && camMsg)camMsg.textContent='Payment cannot start because the final payment amount has not been configured.';
+   else if(camMsg)camMsg.textContent='';
+   camButton.onclick=async()=>{
+     const phone=phoneInput?.value.trim()||'';
+     if(!/^\+?\d[\d\s-]{7,14}$/.test(phone)){if(camMsg)camMsg.textContent='Please enter a valid phone number.';phoneInput?.focus();return;}
+     camButton.disabled=true;if(camMsg)camMsg.textContent='Starting secure CamerPay checkout…';
+     try{
+       const c=getClient();
+       const {data,error}=await c.functions.invoke('payment-initiate',{body:{access_token:getToken(),customer_phone:phone,payment_method:''}});
+       if(error||!data?.checkout_url){
+         if(camMsg)camMsg.textContent=data?.error||error?.message||'Unable to start the CamerPay payment.';
+         camButton.disabled=false;return;
+       }
+       location.href=data.checkout_url;
+     }catch(err){
+       if(camMsg)camMsg.textContent=err?.message||'Unable to start the CamerPay payment.';
+       camButton.disabled=false;
+     }
+   };
+ }
+
+ const msg=document.getElementById('paymentMessage');
+ const btn=document.getElementById('paidButton');
+ if(isCamerPay){ if(msg)msg.textContent=''; return; }
  if(!btn||!msg)return;
  if(r.status==='PAYMENT_CLAIMED'){
    btn.hidden=true;
@@ -230,7 +278,7 @@ function renderPayment(r){
  } else if(r.status==='PAYMENT_REJECTED'){
    btn.hidden=false;
    btn.disabled=!hasFinalPrice;
-   msg.textContent=r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new claim.';
+   msg.textContent=r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new payment claim.';
  } else if(!hasFinalPrice){
    btn.hidden=false;
    btn.disabled=true;
@@ -245,79 +293,14 @@ function renderPayment(r){
      msg.textContent='Submitting your payment claim…';
      const c=getClient();
      const {data,error}=await c.rpc('claim_commission_payment',{p_access_token:getToken()});
-     if(error||!data){
-       msg.textContent=error?.message||'Unable to submit your payment claim.';
-       btn.disabled=false;
-       return;
-     }
-     msg.textContent='Payment claim received. Your payment is now being verified.';
-     btn.hidden=true;
-     await loadByToken(getToken());
-   };
- }
- if(r.status==='PAYMENT_REJECTED' && hasFinalPrice){
-   btn.onclick=async()=>{
-     if(!confirm('Please confirm that you have already sent the payment using the correct recipient details.'))return;
-     btn.disabled=true;
-     msg.textContent='Submitting your new payment claim…';
-     const c=getClient();
-     const {data,error}=await c.rpc('claim_commission_payment',{p_access_token:getToken()});
-     if(error||!data){
-       msg.textContent=error?.message||'Unable to submit your payment claim.';
-       btn.disabled=false;
-       return;
-     }
+     if(error||!data){msg.textContent=error?.message||'Unable to submit your payment claim.';btn.disabled=false;return;}
      msg.textContent='Payment claim received. Your payment is now being verified.';
      btn.hidden=true;
      await loadByToken(getToken());
    };
  }
 }
-function renderQueuePosition(position,status){
- const card=document.getElementById('queuePositionCard');
- const text=document.getElementById('queuePositionText');
- const active=['PAID','IN_PROGRESS'].includes(status);
- if(!active || position==null){card.hidden=true;return;}
- card.hidden=false;
- text.textContent=`Queue position #${position}`;
-}
-async function loadQueuePosition(token,status){
- if(!['PAID','IN_PROGRESS'].includes(status)){renderQueuePosition(null,status);return;}
- const client=getClient();
- if(!client){renderQueuePosition(null,status);return;}
- const {data,error}=await client.rpc('get_client_queue_position',{p_access_token:token});
- if(error){renderQueuePosition(null,status);return;}
- renderQueuePosition(data,status);
-}
-function renderPortal(r, token){
- const info=statusInfo[r.status]||{label:r.status||'Unknown',message:'Please check back later for updates.'};
- const requestTitle=document.getElementById('portalRequestTitle');if(requestTitle)requestTitle.textContent='#'+r.request_number;
- const portalStatus=document.getElementById('portalStatus');if(portalStatus)portalStatus.textContent=info.label.toUpperCase();
- const portalMessage=document.getElementById('portalMessage');if(portalMessage)portalMessage.textContent=info.message;
- const details=[
-  ['Commission',r.commission_type],['Format',r.format],['Characters',r.character_count],
-  ['Usage',r.usage_type],['Background',r.background],['Urgent',r.urgent?'Yes':'No'],
-  ['Requested deadline',r.requested_deadline?date(r.requested_deadline):'—'],
-  ['Estimated price',money(r.estimated_price)],['Final price',money(r.final_price)],
-  ['Submitted',date(r.created_at)]
- ];
- const portalDetails=document.getElementById('portalDetails');if(portalDetails)portalDetails.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v??'—')}</div></div>`).join('');
- renderTimeline(r.status);
- renderNextStep(r.status);
- loadUpdates(token);
- finalDeliveryReady=false;
- loadFinalDelivery(token).then(()=>loadClientReview(token,r.status));
- renderQueuePosition(null,r.status);
- loadQueuePosition(token,r.status);
- renderPayment(r);
- const notice=document.getElementById('portalNoticeCard');
- const title=document.getElementById('portalNoticeTitle'), text=document.getElementById('portalNoticeText');
- if(notice&&title&&text&&r.status==='DECLINED'&&r.decline_message){notice.hidden=false;title.textContent='Message about this request';text.textContent=r.decline_message}
- else if(r.status==='ACCEPTED_AWAITING_PAYMENT'&&r.payment_instructions){notice.hidden=false;title.textContent='Payment information';text.textContent=r.payment_instructions}
- else if(notice) notice.hidden=true;
- const accessCard=document.getElementById('accessCard');if(accessCard)accessCard.hidden=true;
- const portalCard=document.getElementById('portalCard');if(portalCard)portalCard.hidden=false;
-}
+
 async function loadByToken(token){
  const client=getClient();
  if(!client){setAccessMessage('The commission portal is temporarily unavailable. Please try again later.',true);return false}

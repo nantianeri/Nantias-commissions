@@ -29,6 +29,8 @@ const URGENT_FEE=15;
 function money(n){return "$"+Number(n||0).toFixed(2)}
 function getParams(){const p=new URLSearchParams(location.search);return{type:p.get("type"),format:p.get("format")}}
 async function getPublicClient(){const cfg=window.NANTIA_SUPABASE||{};if(!window.supabase||!cfg.url||!cfg.anonKey)return null;return window.supabase.createClient(cfg.url,cfg.anonKey)}
+let NANTIA_PAYMENT_CONFIG={active_provider:'manual',country_required:true};
+async function loadPaymentProviderConfig(client){try{const {data}=await client.rpc('get_public_payment_config');if(data?.[0])NANTIA_PAYMENT_CONFIG=data[0];}catch(_){}}
 async function loadPublicData(client){const [{data:settings},{data:offers,error:offersError},{data:discounts,error:discountError}]=await Promise.all([client.from('site_settings').select('*').eq('id',true).single(),client.from('commission_offers').select('*').eq('active',true).order('sort_order'),client.from('commission_discounts').select('*')]);return{settings:settings||null,offers:offers||[],discounts:discounts||[],error:offersError||discountError||null}}
 function offerFormat(offer){const explicit=offer?.options&&typeof offer.options==='object'?offer.options.format:'';if(explicit)return String(explicit).toLowerCase();const key=`${offer?.slug||''} ${offer?.name||''}`.toLowerCase().replace(/[-_]/g,' ');if(/\bbust\s*up\b/.test(key))return'bust';if(/\bhalf\s*body\b/.test(key))return'half';if(/\bfull\s*body\b/.test(key))return'full';return''}
 function findFormatOffer(offers,format){const wanted=String(format||'').toLowerCase();return(offers||[]).find(o=>o.category==='Character Illustration'&&offerFormat(o)===wanted)||null}
@@ -53,6 +55,9 @@ function renderHomepagePrices(offers,discounts=[]){const map={bust:'Bust Up',hal
 async function initRequestPage(client,settings,offers,discounts=[]){
  const countryPicker=initCountryPicker();
  const form=document.querySelector('#commissionForm');if(!form)return;
+ const countryWrap=document.getElementById('countryPicker'), countryLabel=document.querySelector('label[for=countryButton]'), countryNote=document.querySelector('.country-availability-note');
+ const hideCountryForProvider=()=>{const hide=NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'&&NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap)countryWrap.hidden=hide;if(countryLabel)countryLabel.hidden=hide;if(countryNote)countryNote.hidden=hide;if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}};
+ hideCountryForProvider();
  const q=getParams();
  const type=document.querySelector('#commissionType'),fmt=document.querySelector('#format'),formatLabel=document.querySelector('#formatLabel'),selectedNote=document.querySelector('#selectedFormatNote');
  const chars=document.querySelector('#characters'),commercial=document.querySelector('#commercial'),usage=document.querySelector('#usage'),custom=document.querySelector('#customComplexity'),box=document.querySelector('#customBox'),bg=document.querySelector('#background'),urgent=document.querySelector('#urgent'),urgentBox=document.querySelector('#urgentBox'),deadline=document.querySelector('#deadline');
@@ -161,8 +166,9 @@ async function initRequestPage(client,settings,offers,discounts=[]){
 
  form.addEventListener('submit',async e=>{
    e.preventDefault();
-   const country=countryPicker?.getValue()||'';
-   if(!country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
+   let country=countryPicker?.getValue()||'';
+   if(NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'){ country='Unknown'; }
+   else if(NANTIA_PAYMENT_CONFIG.country_required!==false && !country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
    const submit=form.querySelector('button[type="submit"]');
    if(!settings||settings.commissions_open===false){location.href='/closed/';return}
    if(!client){alert('The commission system is temporarily unavailable. Please try again later.');return}
@@ -364,7 +370,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  });
 }
 
-document.addEventListener('DOMContentLoaded',async()=>{const menu=document.querySelector('.menu'),nav=document.querySelector('.navlinks');if(menu&&nav)menu.onclick=()=>nav.classList.toggle('open');const client=await getPublicClient();if(!client){applyAvailability(true);return}const{settings,offers,discounts}=await loadPublicData(client);const isOpen=settings?.commissions_open!==false;applyAvailability(isOpen);renderDiscountAnnouncement(discounts,isOpen);renderHomepagePrices(offers,discounts);await initRequestPage(client,settings||{},offers,discounts)});
+document.addEventListener('DOMContentLoaded',async()=>{const menu=document.querySelector('.menu'),nav=document.querySelector('.navlinks');if(menu&&nav)menu.onclick=()=>nav.classList.toggle('open');const client=await getPublicClient();if(!client){applyAvailability(true);return}const{settings,offers,discounts}=await loadPublicData(client);await loadPaymentProviderConfig(client);const isOpen=settings?.commissions_open!==false;applyAvailability(isOpen);renderDiscountAnnouncement(discounts,isOpen);renderHomepagePrices(offers,discounts);await initRequestPage(client,settings||{},offers,discounts)});
 
 
 /* V7.9.2 visual refresh — reveal animation. Navigation is handled by the main DOMContentLoaded handler above. */
