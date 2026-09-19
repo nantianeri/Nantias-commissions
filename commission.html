@@ -116,14 +116,24 @@
 <p class="muted" style="margin-top:8px">Use the recipient details below, then submit the payment claim after you have sent the payment.</p>
 </div>
 
-<div id="camerpayPaymentPanel" class="card" hidden style="margin-top:16px;background:rgba(255,255,255,.02)">
-<strong>Pay securely with CamerPay</strong>
-<p class="muted" style="margin-top:8px">CamerPay will open a secure checkout where you can choose an available payment method. Your payment is confirmed automatically after CamerPay sends a verified payment notification.</p>
-<label for="camerpayPhone" style="margin-top:12px">Phone number *</label>
-<input id="camerpayPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+237 6XX XX XX XX">
-<p class="muted small">Enter the phone number you will use for the payment. It is sent securely to CamerPay to initialize the transaction.</p>
-<button class="btn btn-primary" id="camerpayPayButton" style="margin-top:12px" type="button">Pay Now</button>
-<p aria-live="polite" class="muted" id="camerpayMessage"></p>
+<div id="camerpayPaymentPanel" class="card payment-checkout" hidden style="margin-top:16px">
+  <div class="payment-checkout-head">
+    <div>
+      <div class="payment-eyebrow">SECURE CHECKOUT</div>
+      <strong>Choose how you’d like to pay</strong>
+    </div>
+    <div class="payment-lock" aria-label="Secure payment">⌁</div>
+  </div>
+  <p class="muted payment-checkout-copy">You’ll be taken to a secure checkout to complete your payment. No payment details are stored on this site.</p>
+  <div class="payment-methods" aria-label="Available payment methods">
+    <div class="payment-method" title="Orange Money"><span class="payment-method-icon orange">OM</span><span>Orange Money</span></div>
+    <div class="payment-method" title="MTN MoMo"><span class="payment-method-icon mtn">M</span><span>MTN MoMo</span></div>
+    <div class="payment-method" title="Visa, Mastercard and AmEx"><span class="payment-method-icon card-icon">▣</span><span>Cards</span></div>
+    <div class="payment-method" title="PayPal"><span class="payment-method-icon paypal">P</span><span>PayPal</span></div>
+  </div>
+  <div class="payment-secure-note"><span>🔒</span><span>Secure payment powered by CamerPay</span></div>
+  <button class="btn btn-primary payment-pay-button" id="camerpayPayButton" type="button">Pay Now</button>
+  <p aria-live="polite" class="muted" id="camerpayMessage"></p>
 </div>
 
 <div id="manualInstructionsPanel" class="card" style="margin-top:16px;background:rgba(255,255,255,.02)">
@@ -147,5 +157,5 @@
 </div>
 </div></section></main>
 <footer><div class="container"><strong data-content-key="global.brand">NANTIA</strong><br/>Character Artist &amp; Illustrator<br/><small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small></div></footer>
-<script src="/js/content.js?v=8.0"></script><script src="/js/client-portal.js?v=16.60"></script>
+<script src="/js/content.js?v=8.0"></script><script src="/js/client-portal.js?v=16.62"></script>
 </body></html>
