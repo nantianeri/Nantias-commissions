@@ -192,7 +192,7 @@ function renderPayment(r){
  const lockedAmount=r.payment_amount;
  const providerAmount=document.getElementById('paymentProviderAmount');
  if(providerAmount){
-   providerAmount.textContent=isCamerPay && lockedAmount!=null ? `CamerPay payment amount: ${xaf(lockedAmount)}` : (isCamerPay ? 'CamerPay will calculate the XAF amount using its current rate when checkout starts.' : '');
+   providerAmount.textContent=isCamerPay && lockedAmount!=null ? `Secure checkout amount: ${xaf(lockedAmount)}` : '';
  }
 
  const country=r.payment_country||'Cameroon';
@@ -244,25 +244,22 @@ function renderPayment(r){
  const camButton=document.getElementById('camerpayPayButton');
  const camMsg=document.getElementById('camerpayMessage');
  if(isCamerPay && camButton){
-   const phoneInput=document.getElementById('camerpayPhone');
    camButton.disabled=r.status==='PAYMENT_CLAIMED' || !hasFinalPrice;
    if(r.status==='PAYMENT_CLAIMED' && camMsg)camMsg.textContent='Your payment is being confirmed. You do not need to start another payment.';
    else if(!hasFinalPrice && camMsg)camMsg.textContent='Payment cannot start because the final price has not been set.';
    else if(camMsg)camMsg.textContent='';
    camButton.onclick=async()=>{
-     const phone=phoneInput?.value.trim()||'';
-     if(!/^\+?\d[\d\s-]{7,14}$/.test(phone)){if(camMsg)camMsg.textContent='Please enter a valid phone number.';phoneInput?.focus();return;}
-     camButton.disabled=true;if(camMsg)camMsg.textContent='Starting secure CamerPay checkout…';
+     camButton.disabled=true;if(camMsg)camMsg.textContent='Opening secure checkout…';
      try{
        const c=getClient();
-       const {data,error}=await c.functions.invoke('payment-initiate',{body:{access_token:getToken(),customer_phone:phone,payment_method:''}});
+       const {data,error}=await c.functions.invoke('payment-initiate',{body:{access_token:getToken(),payment_method:''}});
        if(error||!data?.checkout_url){
-         if(camMsg)camMsg.textContent=data?.error||error?.message||'Unable to start the CamerPay payment.';
+         if(camMsg)camMsg.textContent=data?.error||error?.message||'Unable to start the payment.';
          camButton.disabled=false;return;
        }
        location.href=data.checkout_url;
      }catch(err){
-       if(camMsg)camMsg.textContent=err?.message||'Unable to start the CamerPay payment.';
+       if(camMsg)camMsg.textContent=err?.message||'Unable to start the payment.';
        camButton.disabled=false;
      }
    };
