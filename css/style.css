@@ -1188,3 +1188,174 @@ html[data-content-pending="true"] [data-content-key],
 html[data-content-pending="true"] [data-content-href-key] {
   visibility: hidden;
 }
+
+/* Professional CamerPay checkout card */
+.payment-checkout{padding:22px!important;background:linear-gradient(180deg,#fff 0%,#faf9ff 100%)!important;border:1px solid rgba(16,16,38,.10)!important;box-shadow:0 16px 38px rgba(16,16,38,.08)!important;overflow:hidden}
+.payment-checkout-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.payment-eyebrow{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.14em;font-weight:700;color:var(--muted);margin-bottom:7px}
+.payment-checkout-head strong{font-size:1.05rem}
+.payment-lock{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(77,143,91,.10);border:1px solid rgba(77,143,91,.20);font-size:1.15rem;color:var(--green);flex:0 0 auto}
+.payment-checkout-copy{margin-top:9px;line-height:1.6}
+.payment-methods{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:18px}
+.payment-method{min-width:0;min-height:72px;padding:11px 7px;border:1px solid rgba(16,16,38,.10);border-radius:14px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;font-size:.68rem;font-weight:700;line-height:1.15}
+.payment-method-icon{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;font-size:.72rem;font-weight:900;letter-spacing:-.03em;border:1px solid rgba(16,16,38,.08)}
+.payment-method-icon.orange{background:#fff1e7;color:#f26522}
+.payment-method-icon.mtn{background:#fff7bd;color:#111}
+.payment-method-icon.card-icon{background:#eef1f7;color:#1b2948;font-size:1rem}
+.payment-method-icon.paypal{background:#eaf3ff;color:#0070ba;font-family:Arial,sans-serif;font-size:1rem}
+.payment-secure-note{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:15px;font-size:.72rem;color:var(--muted)}
+.payment-pay-button{width:100%;margin-top:14px!important;min-height:50px;font-size:.95rem;font-weight:800;letter-spacing:.01em}
+#camerpayMessage{text-align:center;min-height:20px;margin-top:9px}
+@media(max-width:560px){.payment-checkout{padding:18px!important}.payment-methods{grid-template-columns:repeat(2,1fr)}.payment-method{min-height:68px}.payment-pay-button{min-height:52px}}
+
+/* V16.70 — local payment logos: polished, responsive, Phoenix + GitHub compatible */
+.payment-checkout{
+  padding:24px!important;
+  background:linear-gradient(145deg,#ffffff 0%,#f8f8fb 100%)!important;
+  border:1px solid rgba(16,16,38,.09)!important;
+  box-shadow:0 18px 45px rgba(16,16,38,.09)!important;
+}
+.payment-checkout-head strong{font-size:1.12rem;letter-spacing:-.01em}
+.payment-methods{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-top:20px;
+}
+.payment-method{
+  min-width:0;
+  min-height:98px;
+  padding:13px 9px 12px;
+  border:1px solid rgba(16,16,38,.10);
+  border-radius:15px;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  text-align:center;
+  font-size:.68rem;
+  font-weight:700;
+  line-height:1.15;
+  box-shadow:0 2px 8px rgba(16,16,38,.03);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.payment-method:hover{
+  transform:translateY(-2px);
+  box-shadow:0 9px 22px rgba(16,16,38,.08);
+  border-color:rgba(16,16,38,.16);
+}
+.payment-logo-wrap{
+  width:108px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 48px;
+}
+.payment-logo-wrap img{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:48px;
+  object-fit:contain;
+}
+.orange-logo{
+  width:48px;
+  height:48px;
+  border-radius:10px;
+  overflow:hidden;
+  background:#111820;
+  box-shadow:0 2px 7px rgba(16,16,38,.10);
+}
+.orange-logo img{
+  width:48px;
+  height:48px;
+  object-fit:cover;
+}
+.mtn-logo{
+  width:92px;
+  height:48px;
+  border-radius:9px;
+  overflow:hidden;
+  box-shadow:0 2px 7px rgba(16,16,38,.10);
+}
+.mtn-logo img{
+  width:92px;
+  height:48px;
+  object-fit:cover;
+}
+.paypal-logo{
+  width:100px;
+  height:48px;
+}
+.paypal-logo img{
+  width:94px;
+  max-height:48px;
+  object-fit:contain;
+}
+.card-brand-row{
+  width:108px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.card-brand-row img{
+  width:35px;
+  height:22px;
+  object-fit:contain;
+}
+.card-brand-row .amex-word{
+  font-size:.48rem;
+  font-weight:900;
+  letter-spacing:-.04em;
+  border-radius:3px;
+  padding:4px 3px;
+  background:#1674b9;
+  color:#fff;
+}
+.payment-method>span:last-child{
+  font-size:.68rem;
+  font-weight:800;
+}
+.payment-secure-note{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  margin-top:17px;
+  padding-top:13px;
+  border-top:1px solid rgba(16,16,38,.07);
+  font-size:.72rem;
+  color:var(--muted);
+}
+.payment-pay-button{
+  width:100%;
+  margin-top:14px!important;
+  min-height:50px;
+  font-size:.95rem;
+  font-weight:800;
+  letter-spacing:.01em;
+}
+#camerpayMessage{text-align:center;min-height:20px;margin-top:9px}
+#paidButton[hidden]{display:none!important}
+@media(max-width:900px){
+  .payment-methods{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .payment-checkout{padding:19px!important}
+  .payment-methods{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .payment-method{min-height:92px}
+  .payment-pay-button{min-height:52px}
+}
+
+
+/* V16.73: Never expose provider/XAF technical payment details to CamerPay clients. */
+body.camerpay-client-mode #paymentProviderAmount,
+body.camerpay-client-mode #paymentDetails,
+body.camerpay-client-mode #paymentNoteBox,
+body.camerpay-client-mode #paymentWarning { display:none !important; }
