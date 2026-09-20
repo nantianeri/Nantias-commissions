@@ -234,11 +234,11 @@ function renderPayment(r){
    detailsBox.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v||'Not configured yet')}</div>${v&&['First name','Last name','Mobile phone number'].includes(k)?`<button type="button" class="btn" data-copy="${esc(v)}" style="margin-top:8px">Copy</button>`:''}</div>`).join('');
    detailsBox.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copyValue(b.dataset.copy)));
  }
+ const note=document.getElementById('paymentNoteBox');
  if(isCamerPay){
    if(detailsBox) detailsBox.innerHTML='';
    if(note) note.textContent='';
  }
- const note=document.getElementById('paymentNoteBox');
  if(note)note.textContent=isCamerPay?'':(r.payment_note||'');
  const rejectionBox=document.getElementById('paymentRejectionMessage');
  if(rejectionBox){ rejectionBox.hidden=r.status!=='PAYMENT_REJECTED'; rejectionBox.textContent=r.status==='PAYMENT_REJECTED'?(r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new claim.'):''; }
