@@ -230,16 +230,16 @@ function renderPayment(r){
    ? []
    : [['Payment provider',provider==='manual'?'Manual payment':provider],['Destination country',country],['Delivery method',method],['Mobile network',network],['First name',r.payment_first_name],['Last name',r.payment_last_name],['Mobile phone number',r.payment_mobile_phone]];
  const detailsBox=document.getElementById('paymentDetails');
+ const paymentNoteEl=document.getElementById('paymentNoteBox');
  if(detailsBox){
    detailsBox.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v||'Not configured yet')}</div>${v&&['First name','Last name','Mobile phone number'].includes(k)?`<button type="button" class="btn" data-copy="${esc(v)}" style="margin-top:8px">Copy</button>`:''}</div>`).join('');
    detailsBox.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copyValue(b.dataset.copy)));
  }
  if(isCamerPay){
    if(detailsBox) detailsBox.innerHTML='';
-   if(note) note.textContent='';
+   if(paymentNoteEl) paymentNoteEl.textContent='';
  }
- const note=document.getElementById('paymentNoteBox');
- if(note)note.textContent=isCamerPay?'':(r.payment_note||'');
+ if(paymentNoteEl)paymentNoteEl.textContent=isCamerPay?'':(r.payment_note||'');
  const rejectionBox=document.getElementById('paymentRejectionMessage');
  if(rejectionBox){ rejectionBox.hidden=r.status!=='PAYMENT_REJECTED'; rejectionBox.textContent=r.status==='PAYMENT_REJECTED'?(r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new claim.'):''; }
  const intro=document.getElementById('paymentIntro');

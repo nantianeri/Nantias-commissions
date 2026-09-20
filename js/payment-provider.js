@@ -14,8 +14,8 @@
   async function load(){
     const client=await getClient(); if(!client)return;
     const {data,error}=await client.rpc('get_public_payment_config');
-    if(error||!data?.length)return;
-    apply(data[0]);
+    if(error||!data)return;
+    apply(Array.isArray(data)?data[0]:data);
   }
   document.addEventListener('DOMContentLoaded',load);
 })();
