@@ -56,7 +56,18 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  const countryPicker=initCountryPicker();
  const form=document.querySelector('#commissionForm');if(!form)return;
  const countryWrap=document.getElementById('countryPicker'), countryLabel=document.querySelector('label[for=countryButton]'), countryNote=document.querySelector('.country-availability-note');
- const hideCountryForProvider=()=>{const isCamerPay=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay';const hide=isCamerPay || NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap){countryWrap.hidden=hide;countryWrap.style.display=hide?'none':'';}if(countryLabel){countryLabel.hidden=hide;countryLabel.style.display=hide?'none':'';}if(countryNote){countryNote.hidden=hide;countryNote.style.display=hide?'none':'';}if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}};
+ const hideCountryForProvider=()=>{
+   const isCamerPay=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay';
+   const hide=!isCamerPay && NANTIA_PAYMENT_CONFIG.country_required===false;
+   if(countryWrap){countryWrap.hidden=hide;countryWrap.style.display=hide?'none':'';}
+   if(countryLabel){countryLabel.hidden=hide;countryLabel.style.display=hide?'none':'';}
+   if(countryNote){countryNote.hidden=hide;countryNote.style.display=hide?'none':'';}
+   if(isCamerPay){
+     if(countryLabel) countryLabel.textContent='Country (optional)';
+     if(countryNote){countryNote.hidden=false;countryNote.style.display='';countryNote.textContent='Optional. Providing your country helps me understand where my clients are paying from.';}
+   }
+   if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='';}
+ };
  hideCountryForProvider();
  const q=getParams();
  const type=document.querySelector('#commissionType'),fmt=document.querySelector('#format'),formatLabel=document.querySelector('#formatLabel'),selectedNote=document.querySelector('#selectedFormatNote');
@@ -167,8 +178,10 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  form.addEventListener('submit',async e=>{
    e.preventDefault();
    let country=countryPicker?.getValue()||'';
-   if(NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'){ country='Unknown'; }
-   else if(NANTIA_PAYMENT_CONFIG.country_required!==false && !country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
+   if(NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'){
+     // Country is optional in CamerPay mode. Keep the existing backend placeholder when omitted.
+     country=country||'Unknown';
+   } else if(NANTIA_PAYMENT_CONFIG.country_required!==false && !country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
    const submit=form.querySelector('button[type="submit"]');
    if(!settings||settings.commissions_open===false){location.href='/closed/';return}
    if(!client){alert('The commission system is temporarily unavailable. Please try again later.');return}
