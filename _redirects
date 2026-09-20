@@ -25,3 +25,6 @@
 /commission.html        /commission/        301
 /closed.html            /closed/            301
 /website-creation.html  /website-creation/  301
+
+/support/           /support.html           200
+/support.html       /support/              301
