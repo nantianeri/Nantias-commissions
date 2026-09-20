@@ -240,6 +240,13 @@
   </form>
 </div>
 
+<div class="card" style="margin-top:20px" id="supportContentCard">
+  <h3>Support My Art</h3>
+  <p class="muted">Edit the public Support My Art page without changing the payment system.</p>
+  <span id="supportContentMessage" class="muted" aria-live="polite">Loading Support My Art content…</span>
+  <div id="supportContentEditor" style="margin-top:14px"></div>
+</div>
+
 <div class="card" style="margin-top:20px" id="providerContentCard">
   <h3>Provider-Specific Public Content</h3>
   <p class="muted">Edit the public <strong>FAQ</strong>, <strong>How It Works</strong>, and <strong>TOS</strong> separately for each payment provider. The active provider controls what clients see. Your CamerPay text and Manual text are stored independently.</p>
@@ -1154,6 +1161,49 @@
     el.style.color=error?'var(--pink)':'';
   }
 
+  let supportContentRows = [];
+
+  function supportContentMessage(text,error=false){
+    const el=document.getElementById('supportContentMessage');
+    if(!el)return; el.textContent=text||''; el.style.color=error?'var(--pink)':'';
+  }
+
+  function renderSupportContent(){
+    const box=document.getElementById('supportContentEditor'); if(!box)return;
+    box.innerHTML=supportContentRows.map(row=>{
+      const id='support-content-'+esc(row.key).replace(/[^a-zA-Z0-9_-]/g,'-');
+      const multiline=['intro','amount_note','message_placeholder','thanks_body'].includes(row.key);
+      return `<div class="content-field" style="display:grid;gap:8px;margin-top:14px">
+        <label for="${id}">${esc(row.key.replaceAll('_',' '))}</label>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="flex:1;min-width:0">${multiline?`<textarea id="${id}" data-support-content-key="${esc(row.key)}" rows="3">${esc(row.value)}</textarea>`:`<input id="${id}" data-support-content-key="${esc(row.key)}" type="text" value="${esc(row.value)}">`}</div>
+          <button class="btn btn-primary" type="button" data-support-content-save-key="${esc(row.key)}">Save</button>
+        </div>
+        <span class="muted small" data-support-content-status="${esc(row.key)}" aria-live="polite"></span>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadSupportContent(){
+    supportContentMessage('Loading Support My Art content…');
+    const {data,error}=await client.from('support_content').select('*').order('sort_order');
+    if(error){supportContentMessage(error.message,true);return;}
+    supportContentRows=data||[]; renderSupportContent(); supportContentMessage(`${supportContentRows.length} editable fields loaded.`);
+  }
+
+  async function saveSupportContent(key,button){
+    const input=document.querySelector(`[data-support-content-key="${CSS.escape(key)}"]`);
+    const status=document.querySelector(`[data-support-content-status="${CSS.escape(key)}"]`);
+    if(!input||!button)return;
+    const old=button.textContent; button.disabled=true; button.textContent='Saving…';
+    const {error}=await client.from('support_content').update({value:input.value,updated_at:new Date().toISOString()}).eq('key',key);
+    if(error){if(status){status.textContent=`Could not save: ${error.message}`;status.style.color='var(--pink)';}button.disabled=false;button.textContent=old;return;}
+    supportContentRows=supportContentRows.map(r=>r.key===key?{...r,value:input.value}:r);
+    if(status){status.textContent='Saved.';status.style.color='';}button.disabled=false;button.textContent='Saved';setTimeout(()=>{if(button.isConnected)button.textContent=old},1200);
+  }
+
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-support-content-save-key]');if(b)saveSupportContent(b.dataset.supportContentSaveKey,b);});
+
   let providerContentRows = [];
 
   function providerContentMessage(text,error=false){
@@ -1205,6 +1255,7 @@
   }
 
   document.getElementById('providerContentProvider')?.addEventListener('change',loadProviderContent);
+  loadSupportContent();
   document.addEventListener('click',e=>{const b=e.target.closest('[data-provider-content-save-key]');if(b)saveProviderContent(b.dataset.providerContentSaveKey,b);});
 
   function requestDetailRows(r) {
