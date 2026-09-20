@@ -2,12 +2,29 @@
 const SUPPORTED_COUNTRIES = [
   "Australia","Austria","Belgium","Benin","Brazil","Cameroon","Canada","Central African Republic","Chad","Côte d’Ivoire","Cyprus","Czech Republic","Denmark","Equatorial Guinea","Finland","France","Gabon","Germany","Ghana","Greece","Ireland","Israel","Italy","Japan","Latvia","Liechtenstein","Lithuania","Malta","Netherlands","New Zealand","Nigeria","Norway","Poland","Portugal","Republic of the Congo","Romania","Senegal","Singapore","Slovakia","Spain","Sweden","United Arab Emirates","United Kingdom","United States"
 ];
+
+// CamerPay accepts international card/PayPal payments, so the optional country
+// picker can show the full sovereign-country list. Manual payment keeps the
+// existing SUPPORTED_COUNTRIES list above.
+const CAMERPAY_COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi",
+  "Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Republic of the Congo","Costa Rica","Côte d’Ivoire","Croatia","Cuba","Cyprus","Czech Republic",
+  "Democratic Republic of the Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia",
+  "Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary",
+  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan",
+  "Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",
+  "Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal",
+  "Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","São Tomé and Príncipe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria",
+  "Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Türkiye","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
+];
 function initCountryPicker(){
   const picker=document.getElementById('countryPicker'), button=document.getElementById('countryButton'), menu=document.getElementById('countryMenu'), search=document.getElementById('countrySearch'), options=document.getElementById('countryOptions'), empty=document.getElementById('countryEmpty'), hidden=document.getElementById('country');
   if(!picker||!button||!menu||!search||!options||!hidden)return null;
   const render=(query='')=>{
     const q=String(query).trim().toLowerCase();
-    const rows=SUPPORTED_COUNTRIES.filter(c=>!q||c.toLowerCase().includes(q));
+    const countryList=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay'?CAMPERPAY_COUNTRIES:SUPPORTED_COUNTRIES;
+    const rows=countryList.filter(c=>!q||c.toLowerCase().includes(q));
     options.innerHTML=rows.map(c=>`<button type="button" class="country-picker-option" role="option" aria-selected="${hidden.value===c?'true':'false'}" data-country="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('');
     empty.hidden=rows.length!==0;
     options.querySelectorAll('[data-country]').forEach(option=>option.addEventListener('click',()=>{
@@ -56,18 +73,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  const countryPicker=initCountryPicker();
  const form=document.querySelector('#commissionForm');if(!form)return;
  const countryWrap=document.getElementById('countryPicker'), countryLabel=document.querySelector('label[for=countryButton]'), countryNote=document.querySelector('.country-availability-note');
- const hideCountryForProvider=()=>{
-   const isCamerPay=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay';
-   const hide=!isCamerPay && NANTIA_PAYMENT_CONFIG.country_required===false;
-   if(countryWrap){countryWrap.hidden=hide;countryWrap.style.display=hide?'none':'';}
-   if(countryLabel){countryLabel.hidden=hide;countryLabel.style.display=hide?'none':'';}
-   if(countryNote){countryNote.hidden=hide;countryNote.style.display=hide?'none':'';}
-   if(isCamerPay){
-     if(countryLabel) countryLabel.textContent='Country (optional)';
-     if(countryNote){countryNote.hidden=false;countryNote.style.display='';countryNote.textContent='Optional. Providing your country helps me understand where my clients are paying from.';}
-   }
-   if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='';}
- };
+ const hideCountryForProvider=()=>{const isCamerPay=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay';const hide=!isCamerPay && NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap){countryWrap.hidden=hide;countryWrap.style.display=hide?'none':'';}if(countryLabel){countryLabel.hidden=hide;countryLabel.style.display=hide?'none':'';}if(countryNote){countryNote.hidden=hide;countryNote.style.display=hide?'none':'';}if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}else if(isCamerPay){const hidden=document.getElementById('country');if(hidden && hidden.value==='Unknown')hidden.value='';}};
  hideCountryForProvider();
  const q=getParams();
  const type=document.querySelector('#commissionType'),fmt=document.querySelector('#format'),formatLabel=document.querySelector('#formatLabel'),selectedNote=document.querySelector('#selectedFormatNote');
@@ -178,10 +184,8 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  form.addEventListener('submit',async e=>{
    e.preventDefault();
    let country=countryPicker?.getValue()||'';
-   if(NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'){
-     // Country is optional in CamerPay mode. Keep the existing backend placeholder when omitted.
-     country=country||'Unknown';
-   } else if(NANTIA_PAYMENT_CONFIG.country_required!==false && !country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
+   if(NANTIA_PAYMENT_CONFIG.active_provider==='camerpay'){ country=country||'Unknown'; }
+   else if(NANTIA_PAYMENT_CONFIG.country_required!==false && !country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
    const submit=form.querySelector('button[type="submit"]');
    if(!settings||settings.commissions_open===false){location.href='/closed/';return}
    if(!client){alert('The commission system is temporarily unavailable. Please try again later.');return}
