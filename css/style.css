@@ -1359,3 +1359,9 @@ body.camerpay-client-mode #paymentProviderAmount,
 body.camerpay-client-mode #paymentDetails,
 body.camerpay-client-mode #paymentNoteBox,
 body.camerpay-client-mode #paymentWarning { display:none !important; }
+
+
+/* V16.73 social logo assets */
+.socials a .social-logo{width:20px!important;height:20px!important;display:block!important;object-fit:contain!important;border-radius:0!important;}
+.socials a .social-logo-instagram{border-radius:5px!important;}
+.socials a .social-logo-tiktok{border-radius:50%!important;}
