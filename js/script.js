@@ -23,7 +23,7 @@ function initCountryPicker(){
   if(!picker||!button||!menu||!search||!options||!hidden)return null;
   const render=(query='')=>{
     const q=String(query).trim().toLowerCase();
-    const countryList=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay'?CAMPERPAY_COUNTRIES:SUPPORTED_COUNTRIES;
+    const countryList=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay'?CAMERPAY_COUNTRIES:SUPPORTED_COUNTRIES;
     const rows=countryList.filter(c=>!q||c.toLowerCase().includes(q));
     options.innerHTML=rows.map(c=>`<button type="button" class="country-picker-option" role="option" aria-selected="${hidden.value===c?'true':'false'}" data-country="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('');
     empty.hidden=rows.length!==0;
