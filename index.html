@@ -13,6 +13,18 @@
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
+<script>
+(function(){
+  document.documentElement.dataset.contentPending='true';
+  document.documentElement.dataset.contentOverlay='true';
+  var screen=document.createElement('div');
+  screen.id='nantia-loading-screen';
+  screen.setAttribute('aria-live','polite');
+  screen.setAttribute('aria-label','Loading Nantia’s Art');
+  screen.innerHTML='<div class="nantia-loading-content"><div class="nantia-loading-brand">NANTIA’S ART</div><div class="nantia-loading-subtitle">Preparing your experience</div><div class="nantia-loading-spinner" aria-hidden="true"></div></div>';
+  document.documentElement.appendChild(screen);
+})();
+</script>
 <title data-content-key="home.title">Nantia — Artist &amp; Illustrator</title>
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nantia-art.com/">
@@ -195,6 +207,6 @@
 <small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small>
 </div>
 </footer>
-<script src="/js/content.js?v=8.0"></script><script src="/js/portfolio.js?v=9.2"></script><script src="/js/reviews.js?v=16.24"></script><script src="/js/script.js?v=6.9"></script>
+<script src="/js/content.js?v=16.85"></script><script src="/js/portfolio.js?v=9.2"></script><script src="/js/reviews.js?v=16.24"></script><script src="/js/script.js?v=6.9"></script>
 </body>
 </html>
