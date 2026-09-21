@@ -1,6 +1,12 @@
-/* V16.65 — editable provider-specific public content */
+/* V16.89 — editable content loader with single glass loading screen */
 (function(){
   document.documentElement.dataset.contentPending='true';
+  let finished=false;
+  const failTimer=setTimeout(()=>{
+    if(finished)return;
+    document.documentElement.dataset.contentLoadError='true';
+    document.dispatchEvent(new CustomEvent('nantia:content-error'));
+  },10000);
   async function loadSiteContent(){
     const cfg=window.NANTIA_SUPABASE||{};
     if(!window.supabase || !cfg.url || !cfg.anonKey){finish();return;}
@@ -10,17 +16,15 @@
         client.from('site_content').select('key,value'),
         client.rpc('get_public_payment_config')
       ]);
-      if(baseError || !base){finish();return;}
+      if(baseError || !base){showError();return;}
       const map={}; base.forEach(row=>{map[row.key]=row.value??''});
       const provider=String(providerCfg?.[0]?.active_provider||'manual').toLowerCase();
       const {data:overrides,error:overrideError}=await client.from('provider_content').select('key,value').eq('provider',provider);
-      if(!overrideError && overrides){
-        overrides.forEach(row=>{map[row.key]=row.value??''});
-      }
+      if(!overrideError && overrides){overrides.forEach(row=>{map[row.key]=row.value??''});}
       apply(map);
       document.documentElement.dataset.contentLoaded='true';
       finish();
-    }catch(_){finish();}
+    }catch(_){showError();}
   }
   function apply(map){
     document.querySelectorAll('[data-content-href-key]').forEach(el=>{
@@ -40,8 +44,26 @@
       else el.textContent=map[key];
     });
   }
+  function showError(){
+    clearTimeout(failTimer);
+    document.documentElement.dataset.contentLoadError='true';
+    const screen=document.getElementById('nantia-loading-screen');
+    if(screen){
+      const title=screen.querySelector('.nantia-loading-brand');
+      const subtitle=screen.querySelector('.nantia-loading-subtitle');
+      const spinner=screen.querySelector('.nantia-loading-spinner');
+      if(title) title.textContent='NANTIA’S ART';
+      if(subtitle) subtitle.textContent='We’re having trouble loading the latest content';
+      if(spinner) spinner.outerHTML='<div class="nantia-loading-refresh">Refresh</div>';
+    }
+  }
   function finish(){
+    if(finished)return; finished=true; clearTimeout(failTimer);
+    delete document.documentElement.dataset.contentLoadError;
     document.documentElement.dataset.contentPending='false';
+    const screen=document.getElementById('nantia-loading-screen');
+    if(screen) screen.classList.add('nantia-loading-hide');
+    setTimeout(()=>{ if(screen) screen.remove(); delete document.documentElement.dataset.contentOverlay; },220);
     document.dispatchEvent(new CustomEvent('nantia:content-loaded'));
   }
   document.addEventListener('DOMContentLoaded',loadSiteContent);
