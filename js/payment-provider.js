@@ -1,4 +1,4 @@
-/* NANTIA'S COMMISSIONS — provider switching (V16.65) */
+/* NANTIA'S COMMISSIONS — provider switching (V16.100) */
 (function(){
   async function getClient(){
     const cfg=window.NANTIA_SUPABASE||{};
@@ -9,7 +9,8 @@
     const provider=String(cfg?.active_provider||'manual').toLowerCase();
     document.querySelectorAll('[data-payment-provider]').forEach(el=>{el.hidden=el.dataset.paymentProvider!==provider;});
     document.querySelectorAll('[data-payment-camerpay]').forEach(el=>{el.hidden=provider!=='camerpay';});
-    document.querySelectorAll('[data-payment-manual]').forEach(el=>{el.hidden=provider==='camerpay';});
+    document.querySelectorAll('[data-payment-ultraner]').forEach(el=>{el.hidden=provider!=='ultraner';});
+    document.querySelectorAll('[data-payment-manual]').forEach(el=>{el.hidden=provider!=='manual';});
   }
   async function load(){
     const client=await getClient(); if(!client)return;

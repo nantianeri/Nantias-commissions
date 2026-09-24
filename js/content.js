@@ -18,7 +18,7 @@
       ]);
       if(baseError || !base){showError();return;}
       const map={}; base.forEach(row=>{map[row.key]=row.value??''});
-      const provider=String(providerCfg?.[0]?.active_provider||'manual').toLowerCase();
+      if(providerError||!providerCfg){showError();return;} const provider=String(providerCfg?.[0]?.active_provider||'').toLowerCase(); if(!['manual','camerpay','ultraner'].includes(provider)){showError();return;}
       const {data:overrides,error:overrideError}=await client.from('provider_content').select('key,value').eq('provider',provider);
       if(!overrideError && overrides){overrides.forEach(row=>{map[row.key]=row.value??''});}
       apply(map);

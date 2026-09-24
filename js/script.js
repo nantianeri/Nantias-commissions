@@ -3,9 +3,9 @@ const SUPPORTED_COUNTRIES = [
   "Australia","Austria","Belgium","Benin","Brazil","Cameroon","Canada","Central African Republic","Chad","Côte d’Ivoire","Cyprus","Czech Republic","Denmark","Equatorial Guinea","Finland","France","Gabon","Germany","Ghana","Greece","Ireland","Israel","Italy","Japan","Latvia","Liechtenstein","Lithuania","Malta","Netherlands","New Zealand","Nigeria","Norway","Poland","Portugal","Republic of the Congo","Romania","Senegal","Singapore","Slovakia","Spain","Sweden","United Arab Emirates","United Kingdom","United States"
 ];
 
-// CamerPay accepts international card/PayPal payments, so the optional country
-// picker can show the full sovereign-country list. Manual payment keeps the
-// existing SUPPORTED_COUNTRIES list above.
+// CamerPay payment uses the full sovereign-country list, so the optional country
+// picker can show international destinations. Manual payment keeps the existing
+// SUPPORTED_COUNTRIES list above.
 const CAMERPAY_COUNTRIES = [
   "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan",
   "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi",
@@ -23,7 +23,8 @@ function initCountryPicker(){
   if(!picker||!button||!menu||!search||!options||!hidden)return null;
   const render=(query='')=>{
     const q=String(query).trim().toLowerCase();
-    const countryList=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay'?CAMERPAY_COUNTRIES:SUPPORTED_COUNTRIES;
+    const provider=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase();
+    const countryList=(provider==='camerpay'||provider==='ultraner')?CAMERPAY_COUNTRIES:SUPPORTED_COUNTRIES;
     const rows=countryList.filter(c=>!q||c.toLowerCase().includes(q));
     options.innerHTML=rows.map(c=>`<button type="button" class="country-picker-option" role="option" aria-selected="${hidden.value===c?'true':'false'}" data-country="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('');
     empty.hidden=rows.length!==0;
@@ -51,12 +52,16 @@ async function loadPaymentProviderConfig(client){
   try{
     const {data,error}=await client.rpc('get_public_payment_config');
     const row=Array.isArray(data)?data[0]:data;
-    if(!error&&row){NANTIA_PAYMENT_CONFIG=row;return;}
-  }catch(_){}
-  try{
-    const {data}=await client.from('payment_settings').select('active_provider,country_required').eq('id',true).maybeSingle();
-    if(data)NANTIA_PAYMENT_CONFIG={...NANTIA_PAYMENT_CONFIG,...data};
-  }catch(_){}
+    const provider=String(row?.active_provider||'').toLowerCase();
+    if(!error&&row&&(provider==='manual'||provider==='camerpay'||provider==='ultraner')){
+      NANTIA_PAYMENT_CONFIG=row;
+      return true;
+    }
+    console.error('Nantia payment configuration could not be loaded.',error);
+  }catch(err){
+    console.error('Nantia payment configuration could not be loaded.',err);
+  }
+  return false;
 }
 async function loadPublicData(client){const [{data:settings},{data:offers,error:offersError},{data:discounts,error:discountError}]=await Promise.all([client.from('site_settings').select('*').eq('id',true).single(),client.from('commission_offers').select('*').eq('active',true).order('sort_order'),client.from('commission_discounts').select('*')]);return{settings:settings||null,offers:offers||[],discounts:discounts||[],error:offersError||discountError||null}}
 function offerFormat(offer){const explicit=offer?.options&&typeof offer.options==='object'?offer.options.format:'';if(explicit)return String(explicit).toLowerCase();const key=`${offer?.slug||''} ${offer?.name||''}`.toLowerCase().replace(/[-_]/g,' ');if(/\bbust\s*up\b/.test(key))return'bust';if(/\bhalf\s*body\b/.test(key))return'half';if(/\bfull\s*body\b/.test(key))return'full';return''}
@@ -83,7 +88,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  const countryPicker=initCountryPicker();
  const form=document.querySelector('#commissionForm');if(!form)return;
  const countryWrap=document.getElementById('countryPicker'), countryLabel=document.querySelector('label[for=countryButton]'), countryNote=document.querySelector('.country-availability-note');
- const hideCountryForProvider=()=>{const isCamerPay=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay';const hide=!isCamerPay && NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap){countryWrap.hidden=hide;countryWrap.style.display=hide?'none':'';}if(countryLabel){countryLabel.hidden=hide;countryLabel.style.display=hide?'none':'';}if(countryNote){countryNote.hidden=hide;countryNote.style.display=hide?'none':'';}if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}else if(isCamerPay){const hidden=document.getElementById('country');if(hidden && hidden.value==='Unknown')hidden.value='';}};
+ const hideCountryForProvider=()=>{const provider=String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase();const isCamerPay=provider==='camerpay';const isUltraner=provider==='ultraner';const hide=!isCamerPay&&!isUltraner&&NANTIA_PAYMENT_CONFIG.country_required===false;if(countryWrap){countryWrap.hidden=hide;countryWrap.style.display=hide?'none':'';}if(countryLabel){countryLabel.hidden=hide;countryLabel.style.display=hide?'none':'';}if(countryNote){countryNote.hidden=hide;countryNote.style.display=hide?'none':'';}if(hide){const hidden=document.getElementById('country');if(hidden)hidden.value='Unknown';}else if(isCamerPay||isUltraner){const hidden=document.getElementById('country');if(hidden && hidden.value==='Unknown')hidden.value='';}};
  hideCountryForProvider();
  if(countryPicker?.refresh)countryPicker.refresh();
  const q=getParams();
@@ -195,7 +200,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  form.addEventListener('submit',async e=>{
    e.preventDefault();
    let country=countryPicker?.getValue()||'';
-   if(String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay'){ country=country||'Unknown'; }
+   if(String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='camerpay' || String(NANTIA_PAYMENT_CONFIG.active_provider||'').toLowerCase()==='ultraner'){ country=country||'Unknown'; }
    else if(NANTIA_PAYMENT_CONFIG.country_required!==false && !country){alert('Please select your country before submitting your request.');countryPicker?.focus();return;}
    const submit=form.querySelector('button[type="submit"]');
    if(!settings||settings.commissions_open===false){location.href='/closed/';return}
@@ -398,7 +403,7 @@ async function initRequestPage(client,settings,offers,discounts=[]){
  });
 }
 
-document.addEventListener('DOMContentLoaded',async()=>{const menu=document.querySelector('.menu'),nav=document.querySelector('.navlinks');if(menu&&nav)menu.onclick=()=>nav.classList.toggle('open');const client=await getPublicClient();if(!client){applyAvailability(true);return}const{settings,offers,discounts}=await loadPublicData(client);await loadPaymentProviderConfig(client);const isOpen=settings?.commissions_open!==false;applyAvailability(isOpen);renderDiscountAnnouncement(discounts,isOpen);renderHomepagePrices(offers,discounts);await initRequestPage(client,settings||{},offers,discounts)});
+document.addEventListener('DOMContentLoaded',async()=>{const menu=document.querySelector('.menu'),nav=document.querySelector('.navlinks');if(menu&&nav)menu.onclick=()=>nav.classList.toggle('open');const client=await getPublicClient();if(!client){applyAvailability(true);return}const{settings,offers,discounts}=await loadPublicData(client);const paymentConfigOk=await loadPaymentProviderConfig(client);const isOpen=settings?.commissions_open!==false;applyAvailability(isOpen);renderDiscountAnnouncement(discounts,isOpen);renderHomepagePrices(offers,discounts);if(paymentConfigOk)await initRequestPage(client,settings||{},offers,discounts)});
 
 
 /* V7.9.2 visual refresh — reveal animation. Navigation is handled by the main DOMContentLoaded handler above. */

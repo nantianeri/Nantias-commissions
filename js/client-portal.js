@@ -218,6 +218,7 @@ function renderPayment(r){
 
  const provider=(r.payment_provider||'manual').toLowerCase();
  const isCamerPay=provider==='camerpay';
+ const isUltraner=provider==='ultraner';
  document.body.classList.toggle('camerpay-client-mode', isCamerPay);
  const lockedAmount=r.payment_amount;
  const providerAmount=document.getElementById('paymentProviderAmount');
@@ -226,7 +227,7 @@ function renderPayment(r){
  const country=r.payment_country||'Cameroon';
  const method=r.payment_method||'Mobile Money';
  const network=r.mobile_network||'MTN Mobile Money';
- const details=isCamerPay
+ const details=(isCamerPay || isUltraner)
    ? []
    : [['Payment provider',provider==='manual'?'Manual payment':provider],['Destination country',country],['Delivery method',method],['Mobile network',network],['First name',r.payment_first_name],['Last name',r.payment_last_name],['Mobile phone number',r.payment_mobile_phone]];
  const detailsBox=document.getElementById('paymentDetails');
@@ -235,16 +236,18 @@ function renderPayment(r){
    detailsBox.innerHTML=details.map(([k,v])=>`<div class="detail"><strong>${esc(k)}</strong><div>${esc(v||'Not configured yet')}</div>${v&&['First name','Last name','Mobile phone number'].includes(k)?`<button type="button" class="btn" data-copy="${esc(v)}" style="margin-top:8px">Copy</button>`:''}</div>`).join('');
    detailsBox.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copyValue(b.dataset.copy)));
  }
- if(isCamerPay){
+ if(isCamerPay || isUltraner){
    if(detailsBox) detailsBox.innerHTML='';
    if(paymentNoteEl) paymentNoteEl.textContent='';
  }
- if(paymentNoteEl)paymentNoteEl.textContent=isCamerPay?'':(r.payment_note||'');
+ if(paymentNoteEl)paymentNoteEl.textContent=(isCamerPay || isUltraner)?'':(r.payment_note||'');
  const rejectionBox=document.getElementById('paymentRejectionMessage');
  if(rejectionBox){ rejectionBox.hidden=r.status!=='PAYMENT_REJECTED'; rejectionBox.textContent=r.status==='PAYMENT_REJECTED'?(r.payment_rejection_message||'Your payment claim could not be verified. Please review your payment and submit a new claim.'):''; }
  const intro=document.getElementById('paymentIntro');
  if(intro)intro.textContent=isCamerPay
    ?(r.status==='PAYMENT_CLAIMED'?'Your payment has been submitted and is being checked by the payment provider.':r.status==='PAYMENT_REJECTED'?'The previous payment attempt was not confirmed. You can start a new payment attempt below.':(String(r.payment_transaction_status||'').toLowerCase()==='failed'||String(r.payment_transaction_status||'').toLowerCase()==='cancelled')?'Your previous CamerPay payment attempt was not completed. You can start a new payment attempt below.':'Your commission has been accepted. Complete the secure CamerPay checkout below.')
+   :isUltraner
+     ?(r.status==='PAYMENT_CLAIMED'?'Your payment claim has been received.':r.status==='PAYMENT_REJECTED'?'The previous payment attempt was not confirmed. You can start a new payment attempt below.':'Your commission has been accepted. Choose Card or PayPal to complete your payment securely below.')
    :(r.status==='PAYMENT_CLAIMED'?'Your payment claim has been received. The payment details below are shown for reference.':r.status==='PAYMENT_REJECTED'?'Your payment claim was not verified. Please review the message below, correct the issue, and submit a new claim.':'Your commission has been accepted. Please pay the final amount using the manual payment instructions below.');
 
  const manualPanel=document.getElementById('manualPaymentPanel');
@@ -252,17 +255,19 @@ function renderPayment(r){
  const warning=document.getElementById('paymentWarning');
  const paidButton=document.getElementById('paidButton');
  const camPanel=document.getElementById('camerpayPaymentPanel');
- if(manualPanel)manualPanel.hidden=isCamerPay;
- if(manualInstructions)manualInstructions.hidden=isCamerPay;
+ if(manualPanel)manualPanel.hidden=isCamerPay || isUltraner;
+ if(manualInstructions)manualInstructions.hidden=isCamerPay || isUltraner;
  if(!isCamerPay){
    const manualHeading=manualInstructions?.querySelector('[data-content-key=\"portal.remitly_heading\"]');
    const manualIntro=manualInstructions?.querySelector('[data-content-key=\"portal.remitly_intro\"]');
    if(manualHeading)manualHeading.textContent='Manual payment instructions';
    if(manualIntro)manualIntro.textContent='Use the recipient details shown above, then review everything before sending.';
  }
- if(warning)warning.hidden=isCamerPay;
- if(paidButton){paidButton.hidden=isCamerPay; paidButton.style.display=isCamerPay?'none':'';}
+ if(warning)warning.hidden=isCamerPay || isUltraner;
+ if(paidButton){paidButton.hidden=isCamerPay || isUltraner; paidButton.style.display=(isCamerPay || isUltraner)?'none':'';}
  if(camPanel)camPanel.hidden=!isCamerPay;
+ const ultranerPanel=document.getElementById('ultranerPaymentPanel');
+ if(ultranerPanel)ultranerPanel.hidden=!isUltraner;
 
  if(!isCamerPay){
    const destination=document.getElementById('paymentDestination');if(destination)destination.textContent=country;
@@ -297,9 +302,45 @@ function renderPayment(r){
    };
  }
 
+
+ const ultranerMsg=document.getElementById('ultranerMessage');
+ const ultranerCard=document.getElementById('ultranerCardButton');
+ const ultranerPaypal=document.getElementById('ultranerPaypalButton');
+ if(isUltraner){
+   const startUltraner=async(method,button)=>{
+     if(!hasFinalPrice)return;
+     if(button)button.disabled=true;
+     if(ultranerCard)ultranerCard.disabled=true;
+     if(ultranerPaypal)ultranerPaypal.disabled=true;
+     if(ultranerMsg)ultranerMsg.textContent='Opening secure checkout…';
+     try{
+       const c=getClient();
+       const {data,error}=await c.functions.invoke('ultraner-payment-initiate',{body:{access_token:getToken(),payment_method:method}});
+       if(error||!data?.checkout_url){
+         if(ultranerMsg)ultranerMsg.textContent=await functionErrorMessage(error,data);
+         if(ultranerCard)ultranerCard.disabled=false;
+         if(ultranerPaypal)ultranerPaypal.disabled=false;
+         return;
+       }
+       location.href=data.checkout_url;
+     }catch(err){
+       if(ultranerMsg)ultranerMsg.textContent=err?.message||'Unable to start the payment.';
+       if(ultranerCard)ultranerCard.disabled=false;
+       if(ultranerPaypal)ultranerPaypal.disabled=false;
+     }
+   };
+   if(ultranerCard){ultranerCard.disabled=r.status==='PAYMENT_CLAIMED'||!hasFinalPrice;ultranerCard.onclick=()=>startUltraner('card',ultranerCard);}
+   if(ultranerPaypal){ultranerPaypal.disabled=r.status==='PAYMENT_CLAIMED'||!hasFinalPrice;ultranerPaypal.onclick=()=>startUltraner('paypal',ultranerPaypal);}
+   if(ultranerMsg){
+     if(r.status==='PAYMENT_CLAIMED')ultranerMsg.textContent='Your payment is being confirmed. You do not need to start another payment.';
+     else if(!hasFinalPrice)ultranerMsg.textContent='Payment cannot start because the final price has not been set.';
+     else ultranerMsg.textContent='';
+   }
+ }
+
  const msg=document.getElementById('paymentMessage');
  const btn=document.getElementById('paidButton');
- if(isCamerPay){ if(msg)msg.textContent=''; return; }
+ if(isCamerPay || isUltraner){ if(msg)msg.textContent=''; return; }
  if(!btn||!msg)return;
  if(r.status==='PAYMENT_CLAIMED'){
    btn.hidden=true;
