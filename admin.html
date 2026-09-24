@@ -194,6 +194,7 @@
     <label>Active payment provider</label>
     <select id="activePaymentProvider">
       <option value="camerpay">CamerPay</option>
+      <option value="ultraner">Ultraner</option>
       <option value="manual">Manual</option>
     </select>
     <div id="camerpayProviderSettings" class="card" style="margin-top:14px;background:rgba(255,255,255,.02)">
@@ -249,10 +250,10 @@
 
 <div class="card" style="margin-top:20px" id="providerContentCard">
   <h3>Provider-Specific Public Content</h3>
-  <p class="muted">Edit the public <strong>FAQ</strong>, <strong>How It Works</strong>, and <strong>TOS</strong> separately for each payment provider. The active provider controls what clients see. Your CamerPay text and Manual text are stored independently.</p>
+  <p class="muted">Edit the public <strong>FAQ</strong>, <strong>How It Works</strong>, and <strong>TOS</strong> separately for each payment provider. The active provider controls what clients see. CamerPay, Ultraner, and Manual content are stored independently.</p>
   <div style="display:grid;gap:12px;margin-top:16px">
     <label>Provider to edit</label>
-    <select id="providerContentProvider"><option value="camerpay">CamerPay</option><option value="manual">Manual</option></select>
+    <select id="providerContentProvider"><option value="camerpay">CamerPay</option><option value="ultraner">Ultraner</option><option value="manual">Manual</option></select>
     <span id="providerContentMessage" class="muted" aria-live="polite">Loading provider content…</span>
   </div>
   <div id="providerContentEditor" style="margin-top:14px"></div>
@@ -1236,10 +1237,11 @@
 
   async function loadProviderContent(){
     const provider=document.getElementById('providerContentProvider')?.value||'manual';
-    providerContentMessage(`Loading ${provider==='camerpay'?'CamerPay':'Manual'} content…`);
+    const providerLabel=provider==='camerpay'?'CamerPay':provider==='ultraner'?'Ultraner':'Manual';
+    providerContentMessage(`Loading ${providerLabel} content…`);
     const {data,error}=await client.from('provider_content').select('*').eq('provider',provider).order('page').order('sort_order');
     if(error){providerContentMessage(error.message,true);return;}
-    providerContentRows=data||[]; renderProviderContent(); providerContentMessage(`${provider==='camerpay'?'CamerPay':'Manual'} content loaded. Edit any field and save it.`);
+    providerContentRows=data||[]; renderProviderContent(); providerContentMessage(`${providerLabel} content loaded. Edit any field and save it.`);
   }
 
   async function saveProviderContent(key,button){
@@ -1367,7 +1369,6 @@
     const minRaw=document.getElementById('fxMinRate')?.value.trim();
     const maxRaw=document.getElementById('fxMaxRate')?.value.trim();
     const payload={
-      active_provider:provider,
       fx_mode:fxMode,
       fx_adjustment_percent:Number.isFinite(fxAdjustment)?fxAdjustment:3.5,
       fx_manual_rate:manualRaw?Number(manualRaw):null,
@@ -1383,9 +1384,19 @@
     if(payload.fx_adjustment_percent < -25 || payload.fx_adjustment_percent > 25){
       msg.textContent='Adjustment must be between -25% and +25%.';msg.style.color='var(--pink)';return;
     }
-    const {error}=await client.from('payment_settings').update(payload).eq('id',true);
-    if(error){msg.textContent=error.message;msg.style.color='var(--pink)';return;}
-    msg.textContent='Saved. '+(provider==='camerpay'?'CamerPay will use these exchange-rate settings for new payments.':'New accepted commissions will use Manual payment.');
+    const {error:settingsError}=await client.from('payment_settings').update(payload).eq('id',true);
+    if(settingsError){msg.textContent=settingsError.message;msg.style.color='var(--pink)';return;}
+
+    const {data:providerData,error:providerError}=await client.rpc('set_active_payment_provider',{p_provider:provider});
+    if(providerError){
+      msg.textContent=providerError.message||'The payment provider could not be changed.';
+      msg.style.color='var(--pink)';
+      await loadPaymentProfile();
+      return;
+    }
+
+    const savedProvider=String(providerData||provider).toLowerCase();
+    msg.textContent='Saved. '+(savedProvider==='camerpay'?'CamerPay will use these exchange-rate settings for new payments.':savedProvider==='ultraner'?'New accepted commissions will use Ultraner (USD).':'New accepted commissions will use Manual payment.');
     await loadPaymentProfile();
   });
 

@@ -129,21 +129,26 @@
 </div>
 
 <div id="camerpayPaymentPanel" class="card payment-checkout" hidden style="margin-top:16px">
-  <div class="payment-checkout-head">
-    <div>
-      <div class="payment-eyebrow">SECURE CHECKOUT</div>
-      <strong>Choose your payment method</strong>
-    </div>
-    <div class="payment-lock" aria-label="Secure payment">🔒</div>
-  </div>
-  <p class="muted payment-checkout-copy">Pay securely through CamerPay. At checkout, you can choose card or PayPal.</p>
-  <div class="payment-methods" aria-label="Available payment methods">
-    <div class="payment-method" title="Visa, Mastercard and American Express"><div class="card-brand-row"><img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa"><img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard"><span class="amex-word">AMEX</span></div><span>Cards</span></div>
-    <div class="payment-method" title="PayPal"><div class="payment-logo-wrap paypal-logo"><img src="images/payment/paypal.jpg" alt="PayPal"></div><span>PayPal</span></div>
-  </div>
-  <div class="payment-secure-note"><span>🔒</span><span>Secure payment powered by CamerPay</span></div>
+  <div class="payment-card-banner payment-card-banner-single"><img src="images/payment/cards-secure-checkout.png" alt="Card payment networks"></div>
+  <p class="muted" style="margin:10px 0 12px;text-align:center">🔒 Secure checkout powered by CamerPay.</p>
   <button class="btn btn-primary payment-pay-button" id="camerpayPayButton" type="button">Pay Now</button>
   <p aria-live="polite" class="muted" id="camerpayMessage"></p>
+</div>
+
+<div id="ultranerPaymentPanel" class="card payment-checkout" hidden style="margin-top:16px">
+  <div class="ultraner-payment-options">
+    <section class="ultraner-payment-choice" aria-labelledby="portalCardChoiceLabel">
+      <span class="ultraner-payment-choice-label" id="portalCardChoiceLabel">Card</span>
+      <div class="ultraner-card-brand"><img src="images/payment/cards-secure-checkout.png" alt="Guaranteed safe and secure card checkout, powered by Stripe"></div>
+      <button class="btn btn-primary payment-pay-button" id="ultranerCardButton" type="button">Pay with Card</button>
+    </section>
+    <section class="ultraner-payment-choice" aria-labelledby="portalPaypalChoiceLabel">
+      <span class="ultraner-payment-choice-label" id="portalPaypalChoiceLabel">PayPal</span>
+      <button class="btn btn-secondary payment-pay-button ultraner-paypal-button" id="ultranerPaypalButton" type="button"><img src="images/payment/paypal-icon.png" alt=""> <span>Pay with PayPal</span></button>
+    </section>
+  </div>
+  <p class="muted" style="margin:14px 0 0;text-align:center">🔒 Secure checkout powered by Ultraner.</p>
+  <p aria-live="polite" class="muted" id="ultranerMessage"></p>
 </div>
 
 <div id="manualInstructionsPanel" class="card" hidden style="margin-top:16px;background:rgba(255,255,255,.02)">
@@ -167,5 +172,5 @@
 </div>
 </div></section></main>
 <footer><div class="container"><strong data-content-key="global.brand">NANTIA</strong><br/>Character Artist &amp; Illustrator<br/><small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small></div></footer>
-<script src="/js/content.js?v=16.85"></script><script src="/js/client-portal.js?v=16.81"></script>
+<script src="/js/content.js?v=16.85"></script><script src="/js/client-portal.js?v=16.103"></script>
 </body></html>
