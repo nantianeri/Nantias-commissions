@@ -1202,7 +1202,6 @@ html[data-content-pending="true"] [data-content-href-key] {
 .payment-method-icon.orange{background:#fff1e7;color:#f26522}
 .payment-method-icon.mtn{background:#fff7bd;color:#111}
 .payment-method-icon.card-icon{background:#eef1f7;color:#1b2948;font-size:1rem}
-.payment-method-icon.paypal{background:#eaf3ff;color:#0070ba;font-family:Arial,sans-serif;font-size:1rem}
 .payment-secure-note{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:15px;font-size:.72rem;color:var(--muted)}
 .payment-pay-button{width:100%;margin-top:14px!important;min-height:50px;font-size:.95rem;font-weight:800;letter-spacing:.01em}
 #camerpayMessage{text-align:center;min-height:20px;margin-top:9px}
@@ -1218,7 +1217,7 @@ html[data-content-pending="true"] [data-content-href-key] {
 .payment-checkout-head strong{font-size:1.12rem;letter-spacing:-.01em}
 .payment-methods{
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:1fr;
   gap:10px;
   margin-top:20px;
 }
@@ -1287,28 +1286,23 @@ html[data-content-pending="true"] [data-content-href-key] {
   height:48px;
   object-fit:cover;
 }
-.paypal-logo{
-  width:100px;
-  height:48px;
+.payment-card-banner{
+  width:100%;
+  max-width:560px;
+  border-radius:12px;
+  overflow:hidden;
+  background:#050505;
+  border:1px solid rgba(16,16,38,.08);
 }
-.paypal-logo img{
-  width:94px;
-  max-height:48px;
+.payment-card-banner img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:145px;
   object-fit:contain;
 }
-.card-brand-row{
-  width:108px;
-  height:48px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-}
-.card-brand-row img{
-  width:35px;
-  height:22px;
-  object-fit:contain;
-}
+.payment-method-cards{grid-column:1/-1;min-height:0;padding:16px 14px 13px}
+.payment-method-cards>span{font-size:.75rem;font-weight:800;letter-spacing:.01em}
 .card-brand-row .amex-word{
   font-size:.48rem;
   font-weight:900;
@@ -1448,3 +1442,13 @@ html[data-content-overlay="true"]::after { display:none !important; }
 @media (prefers-reduced-motion:reduce) {
   #nantia-loading-screen, .nantia-loading-spinner, .nantia-loading-refresh { animation:none; }
 }
+
+/* V16.102 — Ultraner card/PayPal payment presentation */
+.ultraner-payment-options{display:grid;gap:18px;margin-top:4px}
+.ultraner-payment-choice{padding:16px;border:1px solid rgba(16,16,38,.09);border-radius:16px;background:#fff}
+.ultraner-payment-choice-label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.10em;font-weight:800;color:var(--muted);margin-bottom:10px}
+.ultraner-card-brand{width:100%;max-width:560px;margin:0 auto 12px;border-radius:12px;overflow:hidden;background:#fff;border:1px solid rgba(16,16,38,.08)}
+.ultraner-card-brand img{display:block;width:100%;height:auto;max-height:145px;object-fit:contain}
+.ultraner-paypal-button{display:flex!important;align-items:center;justify-content:center;gap:10px}
+.ultraner-paypal-button img{width:24px;height:24px;object-fit:contain;display:block}
+@media(max-width:560px){.ultraner-payment-choice{padding:14px}.ultraner-paypal-button img{width:23px;height:23px}}
