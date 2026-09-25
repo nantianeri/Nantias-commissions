@@ -1328,10 +1328,34 @@
 
   async function loadPaymentProfile() {
     const {data,error}=await client.from('payment_settings').select('*').eq('id',true).maybeSingle();
-    if(error) return;
-    document.getElementById('activePaymentProvider').value=data?.active_provider||'manual';
+    const {data:providerRpc,error:providerRpcError}=await client.rpc('get_active_payment_provider');
+    const providerSelect=document.getElementById('activePaymentProvider');
     const providerBox=document.getElementById('camerpayProviderSettings');
-    if(providerBox) providerBox.hidden=(data?.active_provider||'manual')!=='camerpay';
+    const msg=document.getElementById('paymentProviderMessage');
+
+    const activeProvider=String(providerRpcError?data?.active_provider:providerRpc||'').trim().toLowerCase();
+    if(providerRpcError && error){
+      if(msg){
+        msg.textContent='Unable to load the active payment provider. Please refresh and try again.';
+        msg.style.color='var(--pink)';
+      }
+      if(providerSelect) providerSelect.disabled=true;
+      return;
+    }
+    if(!['manual','camerpay','ultraner'].includes(activeProvider)){
+      if(msg){
+        msg.textContent='The saved payment provider is invalid. Please check the payment settings.';
+        msg.style.color='var(--pink)';
+      }
+      if(providerSelect) providerSelect.disabled=true;
+      return;
+    }
+
+    if(providerSelect){
+      providerSelect.disabled=false;
+      providerSelect.value=activeProvider;
+    }
+    if(providerBox) providerBox.hidden=activeProvider!=='camerpay';
     const fxMode=document.getElementById('fxMode');
     const fxAdjustment=document.getElementById('fxAdjustment');
     const fxManualRate=document.getElementById('fxManualRate');
