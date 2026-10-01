@@ -11,7 +11,7 @@ self.addEventListener('push', event => {
   const title = data.title || "Nantia's Commissions";
   const options = {
     body: data.body || "Your commission has been updated.",
-    icon: data.icon || "/images/notification-icon.png",
+    icon: data.icon || "/images/favicon.ico",
     badge: data.badge || "/images/notification-icon.png",
     tag: data.tag || "nantia-commission-update",
     renotify: true,
