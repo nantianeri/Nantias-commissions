@@ -22,6 +22,154 @@ function getClient(){
  return window.supabase.createClient(cfg.url,cfg.anonKey);
 }
 function getToken(){return new URLSearchParams(location.search).get('key')||sessionStorage.getItem('nantia_client_portal_token')||''}
+
+const PUSH_PUBLIC_KEY = 'BJdDZuL_4IGmWNmUcCeuLxtOvLUEQz8oMxqBXp0VCBfeKJgNtdtqVglSiF0-Z8zDvidXw3ATurfmqRAfs6M_ffw';
+const PUSH_DISMISS_KEY = 'nantia_push_prompt_dismissed_v2';
+
+function urlBase64ToUint8Array(base64String){
+ const padding='='.repeat((4-(base64String.length%4))%4);
+ const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+ const raw=atob(base64);
+ const output=new Uint8Array(raw.length);
+ for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
+ return output;
+}
+function setPushMessage(text,error=false){
+ const el=document.getElementById('pushNotificationMessage');
+ if(!el)return;
+ el.textContent=text||'';
+ el.style.color=error?'var(--pink)':'';
+}
+function pushSupported(){
+ return !!(window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+}
+function renderPushEnabled(){
+ const card=document.getElementById('pushNotificationCard');
+ const tip=document.getElementById('portalNotificationTip');
+ const enable=document.getElementById('enablePushButton');
+ const dismiss=document.getElementById('dismissPushButton');
+ if(!card)return;
+ card.hidden=false;
+ if(enable){enable.textContent='Notifications Enabled';enable.disabled=true;}
+ if(dismiss)dismiss.hidden=true;
+ setPushMessage('✓ You will receive alerts when your commission status changes.');
+ if(tip)tip.hidden=false;
+}
+function renderPushPrompt(){
+ const card=document.getElementById('pushNotificationCard');
+ const tip=document.getElementById('portalNotificationTip');
+ const enable=document.getElementById('enablePushButton');
+ const dismiss=document.getElementById('dismissPushButton');
+ if(!card)return;
+ card.hidden=false;
+ if(enable){enable.textContent='Enable Notifications';enable.disabled=false;}
+ if(dismiss)dismiss.hidden=false;
+ setPushMessage('');
+ if(tip)tip.hidden=false;
+}
+function hidePushPrompt(){
+ const card=document.getElementById('pushNotificationCard');
+ if(card)card.hidden=true;
+}
+async function getPushRegistration(){
+ return await navigator.serviceWorker.register('/service-worker.js',{scope:'/'});
+}
+async function savePushSubscription(token,subscription){
+ const client=getClient();
+ if(!client)return false;
+ const json=subscription.toJSON();
+ const endpoint=String(json.endpoint||'');
+ const p256dh=String(json.keys?.p256dh||'');
+ const auth=String(json.keys?.auth||'');
+ if(!endpoint||!p256dh||!auth)return false;
+ const {error}=await client.rpc('register_client_push_subscription',{
+   p_access_token:token,
+   p_endpoint:endpoint,
+   p_p256dh:p256dh,
+   p_auth:auth
+ });
+ if(error){console.error('Push subscription save error:',error);return false;}
+ return true;
+}
+async function enablePushNotifications(token){
+ if(!pushSupported()){
+   setPushMessage('Push notifications are not available in this browser. On iPhone/iPad, add nantia-art to your Home Screen first.',true);
+   return false;
+ }
+ const permission=await Notification.requestPermission();
+ if(permission!=='granted'){
+   setPushMessage(permission==='denied'
+     ? 'Notifications are blocked for nantia-art in this browser. You can enable them later in your browser or device settings.'
+     : 'Notifications were not enabled.',true);
+   return false;
+ }
+ const registration=await getPushRegistration();
+ let subscription=await registration.pushManager.getSubscription();
+ if(!subscription){
+   subscription=await registration.pushManager.subscribe({
+     userVisibleOnly:true,
+     applicationServerKey:urlBase64ToUint8Array(PUSH_PUBLIC_KEY)
+   });
+ }
+ const saved=await savePushSubscription(token,subscription);
+ if(!saved){
+   setPushMessage('Notifications were allowed, but I could not finish setting them up. Please try again.',true);
+   return false;
+ }
+ localStorage.removeItem(PUSH_DISMISS_KEY);
+ renderPushEnabled();
+ return true;
+}
+async function setupPushNotifications(token){
+ const card=document.getElementById('pushNotificationCard');
+ if(!card)return;
+ if(!pushSupported()){
+   hidePushPrompt();
+   return;
+ }
+ try{
+   const permission=Notification.permission;
+   if(permission==='granted'){
+     const registration=await getPushRegistration();
+     let subscription=await registration.pushManager.getSubscription();
+     if(subscription){
+       await savePushSubscription(token,subscription);
+       renderPushEnabled();
+       return;
+     }
+   }
+   if(permission==='denied'){
+     renderPushPrompt();
+     const enable=document.getElementById('enablePushButton');
+     if(enable) enable.disabled=true;
+     setPushMessage('Notifications are currently blocked for this site. You can enable them later in your browser settings.',true);
+     return;
+   }
+   if(localStorage.getItem(PUSH_DISMISS_KEY)==='1'){
+     hidePushPrompt();
+     return;
+   }
+   renderPushPrompt();
+   document.getElementById('enablePushButton')?.addEventListener('click',async()=>{
+     const button=document.getElementById('enablePushButton');
+     if(button)button.disabled=true;
+     setPushMessage('Setting up notifications…');
+     try{ await enablePushNotifications(token); }
+     catch(error){
+       console.error('Push setup error:',error);
+       setPushMessage(error?.message||'Unable to enable notifications right now.',true);
+       if(button)button.disabled=false;
+     }
+   },{once:true});
+   document.getElementById('dismissPushButton')?.addEventListener('click',()=>{
+     localStorage.setItem(PUSH_DISMISS_KEY,'1');
+     hidePushPrompt();
+   },{once:true});
+ }catch(error){
+   console.error('Push initialization error:',error);
+   hidePushPrompt();
+ }
+}
 async function functionErrorMessage(error,data){
  if(data?.error)return String(data.error);
  try{
@@ -417,6 +565,7 @@ async function loadByToken(token){
      return false;
    }
    renderPortal(data[0], token);
+   await setupPushNotifications(token);
    return true;
  }catch(err){
    console.error('Client portal load exception:',err);
