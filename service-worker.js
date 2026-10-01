@@ -11,8 +11,10 @@ self.addEventListener('push', event => {
   const title = data.title || "Nantia's Commissions";
   const options = {
     body: data.body || "Your commission has been updated.",
-    icon: data.icon || "/images/favicon.ico",
-    badge: data.badge || "/images/notification-icon.png",
+    // Main notification icon: Nantia's original favicon.
+    icon: "/favicon.ico",
+    // Keep the existing Nantia diamond as the notification badge.
+    badge: "/images/notification-icon.png",
     tag: data.tag || "nantia-commission-update",
     renotify: true,
     data: { url: data.url || "/commission/" }
@@ -32,8 +34,6 @@ self.addEventListener('notificationclick', event => {
         const targetUrl = new URL(target, self.location.origin);
         if (url.origin === targetUrl.origin && "focus" in client) {
           await client.focus();
-          // Keep an already-open portal session intact. If no portal tab is open,
-          // the code below opens the request-number URL and the client can log in.
           if (url.pathname === "/commission/" || url.pathname === "/commission") return;
           if ("navigate" in client) await client.navigate(targetUrl.href);
           return;
