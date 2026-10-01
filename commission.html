@@ -70,6 +70,25 @@
 <div class="section-head"><div><div class="muted">REQUEST</div><h2 id="portalRequestTitle">#—</h2></div><span class="portal-status" id="portalStatus">LOADING</span></div>
 <p class="lead" id="portalMessage" style="margin-top:16px"></p>
 </div>
+<div class="card portal-notification-card" id="pushNotificationCard" style="margin-top:18px">
+  <div class="portal-notification-head">
+    <div>
+      <div class="eyebrow">🔔 Stay updated</div>
+      <h3 style="margin-top:8px">Stay updated on your commission</h3>
+    </div>
+    <span class="portal-recommended-badge">Recommended</span>
+  </div>
+  <p class="muted" style="margin-top:8px">Get notifications when your commission status changes.</p>
+  <div class="portal-notification-actions">
+    <button class="btn btn-primary" id="enablePushButton" type="button">Enable Notifications</button>
+    <button class="btn btn-secondary" id="dismissPushButton" type="button">Not now</button>
+  </div>
+  <p class="muted small" id="pushNotificationMessage" aria-live="polite" style="margin-top:10px"></p>
+</div>
+<div class="card portal-notification-tip" id="portalNotificationTip" hidden style="margin-top:14px">
+  <strong>💡 Tip: Always check your commission portal</strong>
+  <p class="muted" style="margin:6px 0 0">Check your commission portal regularly for the latest updates.</p>
+</div>
 <div class="card" style="margin-top:18px">
 <h3 data-content-key="portal.progress_heading">Commission details</h3>
 <div class="portal-grid" id="portalDetails" style="margin-top:14px"></div>
@@ -172,5 +191,5 @@
 </div>
 </div></section></main>
 <footer><div class="container"><strong data-content-key="global.brand">NANTIA</strong><br/>Character Artist &amp; Illustrator<br/><small data-content-key="global.copyright">© 2026 Nantia. Commission website.</small></div></footer>
-<script src="/js/content.js?v=16.85"></script><script src="/js/client-portal.js?v=16.103"></script>
+<script src="/js/content.js?v=16.85"></script><script src="/js/client-portal.js?v=16.112"></script>
 </body></html>
