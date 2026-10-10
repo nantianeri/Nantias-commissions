@@ -426,28 +426,43 @@ function renderPayment(r){
    const warningNetwork=document.getElementById('warningNetwork');if(warningNetwork)warningNetwork.textContent=network;
  }
 
- const camButton=document.getElementById('camerpayPayButton');
+ const camCardButton=document.getElementById('camerpayCardButton');
+ const camPaypalButton=document.getElementById('camerpayPaypalButton');
+ const camCardChoice=document.getElementById('camerpayCardChoice');
+ const camPaypalChoice=document.getElementById('camerpayPaypalChoice');
  const camMsg=document.getElementById('camerpayMessage');
- if(isCamerPay && camButton){
-   camButton.disabled=r.status==='PAYMENT_CLAIMED' || !hasFinalPrice;
-   if(r.status==='PAYMENT_CLAIMED' && camMsg)camMsg.textContent='Your payment is being confirmed. You do not need to start another payment.';
-   else if(!hasFinalPrice && camMsg)camMsg.textContent='Payment cannot start because the final price has not been set.';
-   else if(camMsg)camMsg.textContent='';
-   camButton.onclick=async()=>{
-     camButton.disabled=true;if(camMsg)camMsg.textContent='Opening secure checkout…';
+ if(isCamerPay && camCardButton && camPaypalButton){
+   camCardButton.disabled=true;camPaypalButton.disabled=true;
+   (async()=>{
      try{
        const c=getClient();
-       const {data,error}=await c.functions.invoke('payment-initiate',{body:{access_token:getToken(),payment_method:''}});
-       if(error||!data?.checkout_url){
-         if(camMsg)camMsg.textContent=await functionErrorMessage(error,data);
-         camButton.disabled=false;return;
-       }
-       location.href=data.checkout_url;
-     }catch(err){
-       if(camMsg)camMsg.textContent=err?.message||'Unable to start the payment.';
-       camButton.disabled=false;
-     }
-   };
+       const {data:methodRows,error:methodError}=await c.rpc('get_public_camerpay_payment_methods');
+       if(methodError||!Array.isArray(methodRows)||!methodRows.length)throw new Error('Unable to load CamerPay payment options. Please refresh and try again.');
+       const methods=methodRows[0];
+       const cardEnabled=methods.card_enabled===true;
+       const paypalEnabled=methods.paypal_enabled===true;
+       if(camCardChoice)camCardChoice.hidden=!cardEnabled;
+       if(camPaypalChoice)camPaypalChoice.hidden=!paypalEnabled;
+       camCardButton.disabled=r.status==='PAYMENT_CLAIMED'||!hasFinalPrice||!cardEnabled;
+       camPaypalButton.disabled=r.status==='PAYMENT_CLAIMED'||!hasFinalPrice||!paypalEnabled;
+       if(!cardEnabled&&!paypalEnabled){if(camMsg)camMsg.textContent='CamerPay payments are temporarily unavailable.';return;}
+       if(r.status==='PAYMENT_CLAIMED'&&camMsg)camMsg.textContent='Your payment is being confirmed. You do not need to start another payment.';
+       else if(!hasFinalPrice&&camMsg)camMsg.textContent='Payment cannot start because the final price has not been set.';
+       else if(camMsg)camMsg.textContent='';
+       const startCamerPay=async(method,button)=>{
+         if(button)button.disabled=true;
+         camCardButton.disabled=true;camPaypalButton.disabled=true;
+         if(camMsg)camMsg.textContent='Opening secure checkout…';
+         try{
+           const {data,error}=await c.functions.invoke('payment-initiate',{body:{access_token:getToken(),payment_method:method}});
+           if(error||!data?.checkout_url){if(camMsg)camMsg.textContent=await functionErrorMessage(error,data);camCardButton.disabled=!cardEnabled;camPaypalButton.disabled=!paypalEnabled;return;}
+           location.href=data.checkout_url;
+         }catch(err){if(camMsg)camMsg.textContent=err?.message||'Unable to start the payment.';camCardButton.disabled=!cardEnabled;camPaypalButton.disabled=!paypalEnabled;}
+       };
+       camCardButton.onclick=()=>startCamerPay('stripe',camCardButton);
+       camPaypalButton.onclick=()=>startCamerPay('paypal',camPaypalButton);
+     }catch(err){if(camCardChoice)camCardChoice.hidden=true;if(camPaypalChoice)camPaypalChoice.hidden=true;if(camMsg)camMsg.textContent=err?.message||'Unable to load CamerPay payment options.';}
+   })();
  }
 
 
