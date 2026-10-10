@@ -148,9 +148,18 @@
 </div>
 
 <div id="camerpayPaymentPanel" class="card payment-checkout" hidden style="margin-top:16px">
-  <div class="payment-card-banner payment-card-banner-single"><img src="images/payment/cards-secure-checkout.png" alt="Card payment networks"></div>
-  <p class="muted" style="margin:10px 0 12px;text-align:center">🔒 Secure checkout powered by CamerPay.</p>
-  <button class="btn btn-primary payment-pay-button" id="camerpayPayButton" type="button">Pay Now</button>
+  <div class="ultraner-payment-options" id="camerpayPaymentOptions">
+    <section class="ultraner-payment-choice" id="camerpayCardChoice" aria-labelledby="portalCamerPayCardLabel">
+      <span class="ultraner-payment-choice-label" id="portalCamerPayCardLabel">Card</span>
+      <div class="ultraner-card-brand"><img src="images/payment/cards-secure-checkout.png" alt="Guaranteed safe and secure card checkout, powered by Stripe"></div>
+      <button class="btn btn-primary payment-pay-button" id="camerpayCardButton" type="button">Pay with Card</button>
+    </section>
+    <section class="ultraner-payment-choice" id="camerpayPaypalChoice" aria-labelledby="portalCamerPayPaypalLabel">
+      <span class="ultraner-payment-choice-label" id="portalCamerPayPaypalLabel">PayPal</span>
+      <button class="btn btn-secondary payment-pay-button ultraner-paypal-button" id="camerpayPaypalButton" type="button"><img src="images/payment/paypal-icon.png" alt=""><span>Pay with PayPal</span></button>
+    </section>
+  </div>
+  <p class="muted" style="margin:14px 0 0;text-align:center">🔒 Secure checkout powered by CamerPay.</p>
   <p aria-live="polite" class="muted" id="camerpayMessage"></p>
 </div>
 

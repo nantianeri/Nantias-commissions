@@ -199,7 +199,12 @@
     </select>
     <div id="camerpayProviderSettings" class="card" style="margin-top:14px;background:rgba(255,255,255,.02)">
       <strong>CamerPay payment settings</strong>
-      <p class="muted small" style="margin-top:5px">Commission prices stay in USD. This section controls only the USD → XAF conversion used internally for CamerPay checkout.</p>
+      <p class="muted small" style="margin-top:5px">Choose which CamerPay checkout methods clients can use. These switches affect CamerPay only; Ultraner and Manual payments remain unchanged.</p>
+      <div class="card" style="margin:12px 0 16px;background:rgba(255,255,255,.02);display:grid;gap:12px">
+        <label style="display:flex;gap:10px;align-items:center"><input id="camerpayCardEnabled" type="checkbox" checked style="width:auto"> <span><strong>Enable Card payments</strong><span class="muted small" style="display:block">Show the card logo and Pay with Card button.</span></span></label>
+        <label style="display:flex;gap:10px;align-items:center"><input id="camerpayPaypalEnabled" type="checkbox" checked style="width:auto"> <span><strong>Enable PayPal payments</strong><span class="muted small" style="display:block">Show the PayPal logo and Pay with PayPal button.</span></span></label>
+        <p class="muted small" style="margin:0">At least one CamerPay method must remain enabled while CamerPay is the active provider.</p>
+      </div>
       <div style="display:grid;gap:12px;margin-top:14px">
         <label>Exchange-rate mode</label>
         <select id="fxMode"><option value="automatic">Automatic</option><option value="manual">Manual Override</option></select>
@@ -1361,6 +1366,10 @@
     const fxManualRate=document.getElementById('fxManualRate');
     const fxMinRate=document.getElementById('fxMinRate');
     const fxMaxRate=document.getElementById('fxMaxRate');
+    const camerpayCardEnabled=document.getElementById('camerpayCardEnabled');
+    const camerpayPaypalEnabled=document.getElementById('camerpayPaypalEnabled');
+    if(camerpayCardEnabled) camerpayCardEnabled.checked=data?.camerpay_card_enabled !== false;
+    if(camerpayPaypalEnabled) camerpayPaypalEnabled.checked=data?.camerpay_paypal_enabled !== false;
     if(fxMode) fxMode.value=data?.fx_mode||'automatic';
     if(fxAdjustment) fxAdjustment.value=data?.fx_adjustment_percent ?? 3.5;
     if(fxManualRate) fxManualRate.value=data?.fx_manual_rate ?? '';
@@ -1392,7 +1401,14 @@
     const manualRaw=document.getElementById('fxManualRate')?.value.trim();
     const minRaw=document.getElementById('fxMinRate')?.value.trim();
     const maxRaw=document.getElementById('fxMaxRate')?.value.trim();
+    const camerpayCardEnabled=!!document.getElementById('camerpayCardEnabled')?.checked;
+    const camerpayPaypalEnabled=!!document.getElementById('camerpayPaypalEnabled')?.checked;
+    if(provider==='camerpay' && !camerpayCardEnabled && !camerpayPaypalEnabled){
+      msg.textContent='Enable Card or PayPal before saving while CamerPay is active.';msg.style.color='var(--pink)';return;
+    }
     const payload={
+      camerpay_card_enabled:camerpayCardEnabled,
+      camerpay_paypal_enabled:camerpayPaypalEnabled,
       fx_mode:fxMode,
       fx_adjustment_percent:Number.isFinite(fxAdjustment)?fxAdjustment:3.5,
       fx_manual_rate:manualRaw?Number(manualRaw):null,
