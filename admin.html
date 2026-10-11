@@ -753,12 +753,55 @@
     updatePortfolioSelectionUi();
   }
 
+  // Keep portfolio sort positions dense (0, 1, 2, 3...) with no duplicate positions.
+  // A requested position moves that artwork there and shifts the others around it.
+  async function normalizePortfolioSortOrder({itemId=null,requestedOrder=0,priorityIds=[]}={}){
+    const {data,error}=await client.from('portfolio_items').select('id,sort_order,created_at').order('sort_order').order('created_at');
+    if(error)throw error;
+    let ordered=data||[];
+    if(priorityIds.length){
+      const byId=new Map(ordered.map(item=>[item.id,item]));
+      const prioritized=priorityIds.map(id=>byId.get(id)).filter(Boolean);
+      const prioritySet=new Set(prioritized.map(item=>item.id));
+      ordered=[...prioritized,...ordered.filter(item=>!prioritySet.has(item.id))];
+    }
+    if(itemId){
+      const index=ordered.findIndex(item=>item.id===itemId);
+      if(index>=0){
+        const [moving]=ordered.splice(index,1);
+        const numeric=Number(requestedOrder);
+        const destination=Number.isFinite(numeric)?Math.max(0,Math.min(ordered.length,Math.trunc(numeric))):0;
+        ordered.splice(destination,0,moving);
+      }
+    }
+    const changes=ordered.filter((item,index)=>Number(item.sort_order)!==index);
+    // Updates only the rows whose position needs to change.
+    const results=await Promise.all(changes.map((item)=>client.from('portfolio_items').update({sort_order:ordered.findIndex(x=>x.id===item.id)}).eq('id',item.id)));
+    const failed=results.find(result=>result.error);
+    if(failed?.error)throw failed.error;
+    return ordered;
+  }
+
   async function loadPortfolioAdmin(){
     showPortfolioMessage('Loading portfolio…');
-    const {data,error}=await client.from('portfolio_items').select('*').order('sort_order').order('created_at');
+    let {data,error}=await client.from('portfolio_items').select('*').order('sort_order').order('created_at');
     if(error){showPortfolioMessage(error.message,true);return;}
+    const rows=data||[];
+    // Also repair old duplicate/gapped sort orders when the admin portfolio is opened.
+    if(rows.some((item,index)=>Number(item.sort_order)!==index)){
+      try{
+        await normalizePortfolioSortOrder();
+        const refreshed=await client.from('portfolio_items').select('*').order('sort_order').order('created_at');
+        if(refreshed.error)throw refreshed.error;
+        data=refreshed.data||[];
+      }catch(err){
+        renderPortfolioAdmin(rows);
+        showPortfolioMessage(`Artwork loaded, but sort order could not be normalized: ${err.message||String(err)}`,true);
+        return;
+      }
+    }
     renderPortfolioAdmin(data||[]);
-    showPortfolioMessage(`${(data||[]).length} artwork${(data||[]).length===1?'':'s'} loaded.`);
+    showPortfolioMessage(`${(data||[]).length} artwork${(data||[]).length===1?'':'s'} loaded. Sort order starts at 0 with no duplicates.`);
   }
 
   async function uploadPortfolioImage(file,idOverride=null){
@@ -772,12 +815,6 @@
     return {path,url};
   }
 
-  async function getNextPortfolioSort(){
-    const {data,error}=await client.from('portfolio_items').select('sort_order').order('sort_order',{ascending:false}).limit(1);
-    if(error)throw error;
-    return Number(data?.[0]?.sort_order)||0;
-  }
-
   async function bulkUploadPortfolio(){
     const input=document.getElementById('portfolioBulkImages');
     const files=[...(input?.files||[])];
@@ -787,14 +824,13 @@
     input.disabled=true;
     showPortfolioBulkStatus(`Uploading 0/${files.length}…`);
     try{
-      let nextSort=await getNextPortfolioSort();
       let uploaded=0;
+      const uploadedIds=[];
       const failed=[];
       for(const file of files){
         try{
           const id=crypto.randomUUID();
           const uploadedImage=await uploadPortfolioImage(file,id);
-          nextSort+=1;
           const payload={
             id,
             title:'',
@@ -802,7 +838,7 @@
             image_path:uploadedImage.path,
             image_url:uploadedImage.url,
             alt_text:'',
-            sort_order:nextSort,
+            sort_order:0,
             active:true,
             featured:false
           };
@@ -812,9 +848,11 @@
             throw error;
           }
           uploaded++;
+          uploadedIds.push(id);
           showPortfolioBulkStatus(`Uploading ${uploaded}/${files.length}…`);
         }catch(err){failed.push(`${file.name}: ${err.message||String(err)}`);}
       }
+      if(uploadedIds.length)await normalizePortfolioSortOrder({priorityIds:uploadedIds});
       input.value='';
       if(failed.length){
         showPortfolioBulkStatus(`${uploaded} uploaded, ${failed.length} failed.`,true);
@@ -937,15 +975,18 @@
         if(countError)throw countError;
         if((count||0)>=3)throw new Error('You can only have 3 featured artworks. Unfeature one first.');
       }
-      const payload={title,category,image_path:imagePath,image_url:imageUrl,alt_text:document.getElementById('portfolioAlt').value.trim(),sort_order:Number(document.getElementById('portfolioSort').value)||0,active:document.getElementById('portfolioActive').checked,featured};
+      const requestedSortOrder=Math.max(0,Math.trunc(Number(document.getElementById('portfolioSort').value)||0));
+      const payload={title,category,image_path:imagePath,image_url:imageUrl,alt_text:document.getElementById('portfolioAlt').value.trim(),sort_order:requestedSortOrder,active:document.getElementById('portfolioActive').checked,featured};
       let result;
       if(currentPortfolioId) result=await client.from('portfolio_items').update(payload).eq('id',currentPortfolioId).select('*').single();
       else result=await client.from('portfolio_items').insert(payload).select('*').single();
       if(result.error)throw result.error;
-      showPortfolioMessage('Artwork saved.');
+      await normalizePortfolioSortOrder({itemId:result.data.id,requestedOrder:requestedSortOrder});
+      showPortfolioMessage('Artwork saved and portfolio sort order updated.');
       document.getElementById('portfolioImage').value='';
       await loadPortfolioAdmin();
-      openPortfolioEditor(result.data);
+      const refreshedItem=portfolioAdminItems.find(item=>item.id===result.data.id)||result.data;
+      openPortfolioEditor(refreshedItem);
     }catch(err){showPortfolioMessage(err.message||String(err),true)}
     finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save Artwork';}}
   });
