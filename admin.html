@@ -447,14 +447,23 @@
   }
 
   async function loadDashboard() {
-    const {data:{user}} = await client.auth.getUser();
-    if (!user) { loginView.hidden=false; dashboard.hidden=true; return; }
-    const {data:profile} = await client.from('profiles').select('role').eq('id',user.id).single();
-    if (!profile || profile.role !== 'admin') {
-      msg.textContent = 'This account is not authorized as an admin.';
-      await client.auth.signOut();
-      return;
-    }
+    const {data:profile, error:profileError} = await client
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .single();
+
+if (profileError) {
+  console.error('Admin profile check failed:', profileError);
+  msg.textContent = 'Profile check error: ' + profileError.message;
+  return;
+}
+
+if (!profile || profile.role !== 'admin') {
+  msg.textContent = 'This account is not authorized as an admin.';
+  await client.auth.signOut();
+  return;
+}
     loginView.hidden=true; dashboard.hidden=false;
 
     const {data:settings} = await client.from('site_settings').select('*').eq('id',true).single();
