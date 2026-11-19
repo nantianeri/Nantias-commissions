@@ -1,6 +1,6 @@
 // NANTIA'S COMMISSIONS — SUPABASE CONFIGURATION
 // Browser-safe configuration.
-// Do NOT put a Supabase Secret/service_role key in this file.
+// Do NOT put a Supabase Secret/service_role key in this file. Harmless addition
 
 window.NANTIA_SUPABASE = {
   url: "https://tirbioqbobhscvqkybjz.supabase.co",
